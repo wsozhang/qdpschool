@@ -1,0 +1,1750 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>高雄市茄萣區茄萣國民小學 - 3D動態島嶼校園導覽</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Three.js CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- OrbitControls CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap');
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            overflow: hidden;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            background-color: #87CEEB;
+        }
+        canvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+            outline: none;
+        }
+        /* Glassmorphism Styling */
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
+        }
+        .glass-dark {
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+        .island-label {
+            position: absolute;
+            pointer-events: auto;
+            cursor: pointer;
+            white-space: nowrap;
+            z-index: 20;
+            transform: translate(-50%, -50%);
+            transition: opacity 0.2s ease, transform 0.15s ease;
+        }
+        .island-label:hover {
+            transform: translate(-50%, -50%) scale(1.08);
+        }
+        /* Custom Scrollbars */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(0,0,0,0.05);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(0,0,0,0.2);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(0,0,0,0.4);
+        }
+    </style>
+</head>
+<body class="relative min-h-screen w-screen overflow-hidden text-slate-800">
+
+    <!-- 3D Canvas Container -->
+    <div id="canvas-container" class="absolute inset-0 w-full h-full"></div>
+
+    <!-- 2D Screen Space Floating Island Labels Container -->
+    <div id="labels-container" class="absolute inset-0 pointer-events-none overflow-hidden z-20"></div>
+
+    <!-- Top Navigation Header -->
+    <header class="absolute top-4 left-4 right-4 flex justify-between items-center pointer-events-none z-20 gap-2">
+        <!-- Top Left Widget: Date & Weather -->
+        <div class="glass-panel rounded-2xl p-2.5 md:p-3.5 pointer-events-auto flex items-center space-x-3 shadow-lg border border-white/70 transition-all shrink-0">
+            <div id="weather-icon-bg" class="p-2 bg-amber-400/20 text-amber-600 rounded-xl flex items-center justify-center">
+                <svg id="weather-icon-svg" class="w-6 h-6 animate-spin-slow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                </svg>
+            </div>
+            <div class="hidden sm:block">
+                <div class="text-xs font-bold text-amber-700 tracking-wider uppercase flex items-center gap-1.5">
+                    <span id="weather-status-text">晴朗陽光</span>
+                    <span class="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span id="weather-temp-text">26°C</span>
+                </div>
+                <div id="current-date" class="text-xs md:text-sm font-extrabold text-slate-800 tracking-wide mt-0.5">
+                    2026/10/27 (星期二)
+                </div>
+            </div>
+        </div>
+
+        <!-- Top Center Widget: Logo & Main Title -->
+        <div class="glass-panel rounded-2xl px-3.5 md:px-5 py-2 pointer-events-auto flex items-center space-x-2.5 md:space-x-3.5 shadow-xl border border-white/80">
+            <div class="relative group cursor-pointer" title="點擊更換 / 上傳 120 週年校慶 Logo" onclick="document.getElementById('logo-uploader').click()">
+                <img id="school-logo-img" src="120logo_2.jpg" alt="茄萣國小 120 週年 Logo" class="w-10 h-10 md:w-14 md:h-14 object-contain drop-shadow-sm shrink-0 rounded-full bg-white/60 p-0.5 border border-amber-300/80 transition-transform group-hover:scale-105" onerror="handleLogoError(this)" />
+                <div class="absolute inset-0 bg-slate-900/60 rounded-full opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity text-white text-[10px] font-bold">
+                    更換
+                </div>
+                <input type="file" id="logo-uploader" accept="image/*" class="hidden" onchange="handleLogoUpload(event)">
+            </div>
+            <h1 class="text-sm md:text-xl font-black text-slate-800 tracking-wide whitespace-nowrap">茄萣國小探索島嶼</h1>
+        </div>
+
+        <!-- Instructions Guide Badge -->
+        <div class="glass-panel rounded-2xl px-4 py-2.5 pointer-events-auto shadow-lg hidden lg:flex items-center space-x-2 border border-white/70 shrink-0">
+            <span class="inline-block w-2.5 h-2.5 rounded-full bg-blue-500 animate-ping"></span>
+            <span class="text-xs md:text-sm font-bold text-slate-700">拖曳旋轉 3D 視角 • 點擊島嶼與標籤檢視介紹</span>
+        </div>
+    </header>
+
+    <!-- Bottom Left Widget: Mode Switcher -->
+    <div class="absolute bottom-4 left-4 pointer-events-none z-20">
+        <div class="glass-panel rounded-2xl p-1.5 flex items-center space-x-1 shadow-lg border border-white/70 pointer-events-auto">
+            <button id="mode-realtime" onclick="setLightingMode('realtime')" class="mode-btn px-2.5 py-1.5 rounded-xl text-xs font-black transition-all flex items-center gap-1 bg-blue-600 text-white shadow-md">
+                <span>⚡</span>
+                <span class="inline">即時</span>
+            </button>
+            <button id="mode-day" onclick="setLightingMode('day')" class="mode-btn px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1 text-slate-700 hover:bg-white/60">
+                <span>☀️</span>
+                <span class="inline">白天</span>
+            </button>
+            <button id="mode-dusk" onclick="setLightingMode('dusk')" class="mode-btn px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1 text-slate-700 hover:bg-white/60">
+                <span>🌅</span>
+                <span class="inline">黃昏</span>
+            </button>
+            <button id="mode-night" onclick="setLightingMode('night')" class="mode-btn px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1 text-slate-700 hover:bg-white/60">
+                <span>🌙</span>
+                <span class="inline">夜晚</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Bottom Right Widget: School Contact Info -->
+    <footer class="absolute bottom-4 right-4 pointer-events-none z-20 max-w-sm md:max-w-md">
+        <div class="glass-dark text-white rounded-2xl p-3.5 md:p-4 pointer-events-auto shadow-2xl border border-white/10 text-xs md:text-sm space-y-1.5 leading-relaxed">
+            <div class="font-bold text-amber-300 text-sm md:text-base flex items-center gap-1.5 border-b border-white/10 pb-1.5 mb-1.5">
+                <svg class="w-4 h-4 text-amber-400 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                </svg>
+                高雄市茄萣區茄萣國民小學
+            </div>
+            <div class="text-slate-300 flex items-start gap-1">
+                <span class="text-slate-400 shrink-0">地址：</span>
+                <span>85244 高雄市茄萣區茄萣路二段307號</span>
+            </div>
+            <div class="text-slate-300 flex flex-wrap gap-x-3 gap-y-0.5">
+                <div><span class="text-slate-400">電話：</span>07-6900057</div>
+                <div><span class="text-slate-400">傳真：</span>07-6908786</div>
+                <div><span class="text-slate-400">VoIP：</span>923182000</div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Interactive Facility Modal -->
+    <div id="info-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-300">
+        <div class="glass-panel w-full max-w-2xl rounded-3xl p-6 md:p-8 shadow-2xl transform scale-95 transition-all duration-300 relative border border-white/80 max-h-[85vh] flex flex-col">
+            <!-- Close Button -->
+            <button id="close-modal" class="absolute top-5 right-5 w-10 h-10 rounded-full bg-slate-200/80 hover:bg-slate-300 text-slate-700 flex items-center justify-center font-bold text-lg transition-all hover:rotate-90">
+                ✕
+            </button>
+            
+            <!-- Modal Header -->
+            <div class="flex items-center space-x-3 mb-4 shrink-0">
+                <div class="p-3 bg-blue-600 text-white rounded-2xl shadow-md">
+                    <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5m0 0h4m-4 0V11m0 0h4m-4 0V3"/>
+                    </svg>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <h2 id="modal-title" class="text-2xl md:text-3xl font-black text-slate-800">島嶼名稱</h2>
+                        <div id="modal-title-link"></div>
+                    </div>
+                    <p id="modal-subtitle" class="text-xs md:text-sm font-semibold text-blue-600 tracking-wide mt-0.5">校園設施區域導覽</p>
+                </div>
+            </div>
+
+            <!-- Modal Content Area -->
+            <div class="overflow-y-auto pr-1 space-y-4 my-2 text-slate-700 text-sm md:text-base leading-relaxed flex-1">
+                <div class="p-4 bg-blue-50/80 rounded-2xl border border-blue-100 text-blue-900">
+                    <p id="modal-desc" class="font-medium">島嶼介紹與主要功能說明...</p>
+                </div>
+
+                <div>
+                    <h3 class="text-base font-bold text-slate-800 mb-2.5 flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-blue-600"></span>
+                        包含教室與設施：
+                    </h3>
+                    <div id="modal-facilities" class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                        <!-- Dynamic Facility List Items -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="pt-4 border-t border-slate-200/60 flex justify-end shrink-0">
+                <button id="modal-ok-btn" class="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold rounded-xl shadow-lg shadow-blue-500/30 transition-all hover:scale-105">
+                    關閉導覽
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3D Application Script -->
+    <script>
+        // --- Logo Management & Fallback Handler ---
+        function handleLogoError(img) {
+            const savedLogo = localStorage.getItem('qdps_120_logo');
+            if (savedLogo && img.src !== savedLogo) {
+                img.src = savedLogo;
+                return;
+            }
+            // 亮麗的 120 週年校慶精美 SVG 徽章備用圖
+            const svgData = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100"><circle cx="50" cy="50" r="46" fill="%231E3A8A" stroke="%23F59E0B" stroke-width="4"/><circle cx="50" cy="50" r="40" fill="none" stroke="%23FCD34D" stroke-width="1.5" stroke-dasharray="3,3"/><text x="50" y="38" font-family="sans-serif" font-weight="900" font-size="22" fill="%23FBBF24" text-anchor="middle">120</text><text x="50" y="54" font-family="sans-serif" font-weight="700" font-size="10" fill="%23FFFFFF" text-anchor="middle">週年校慶</text><path d="M 25 68 Q 50 82 75 68" stroke="%23F59E0B" stroke-width="3" fill="none"/><text x="50" y="77" font-family="sans-serif" font-weight="700" font-size="8" fill="%2393C5FD" text-anchor="middle">茄萣國小</text></svg>`;
+            img.src = svgData;
+        }
+
+        function handleLogoUpload(event) {
+            const file = event.target.files && event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const logoImg = document.getElementById('school-logo-img');
+                    if (logoImg) {
+                        logoImg.src = e.target.result;
+                        try {
+                            localStorage.setItem('qdps_120_logo', e.target.result);
+                        } catch(err) {
+                            console.warn('LocalStorage storage limit exceeded', err);
+                        }
+                    }
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        // --- Office External Links Configuration ---
+        const officeLinks = {
+            '校長室': 'https://affairs.kh.edu.tw/7352',
+            '教務處': 'http://affairs.kh.edu.tw/3322',
+            '學務處': 'http://affairs.kh.edu.tw/3571',
+            '總務處': 'http://affairs.kh.edu.tw/2360',
+            '輔導室': 'http://affairs.kh.edu.tw/3855',
+            '幼兒園': 'http://class.kh.edu.tw/9943',
+            '幼兒園網頁': 'http://class.kh.edu.tw/9943'
+        };
+
+        // --- Campus Island Data Configuration ---
+        const campusData = [
+            {
+                id: 'main',
+                name: '賜福樓 (主島嶼)',
+                desc: '賜福樓為茄萣國小的校務行政與教學核心大樓，建築設計分成北側與南側兩棟獨立的三層樓建築，中間設有二樓跨棟連通走廊廊橋，正面大門朝向警衛室。大門前設有鯉魚造景噴水圓形水池。',
+                radius: 14,
+                colorTop: 0x8BC34A,
+                isMain: true,
+                facilities: {
+                    '北側行政與專科區': [
+                        '校長室', '教務處', '學務處', '總務處', '健康中心',
+                        '人事會計室', '校史室', '會議室', '電腦教室',
+                        '圖書室', '英語教室', '自然教室', '團體諮商室'
+                    ],
+                    '南側教學區': [
+                        '低年級班級教室', '高年級班級教室', '樂齡教室', '數位學習機會中心教室'
+                    ]
+                }
+            },
+            {
+                id: 'guard',
+                name: '警衛室',
+                desc: '警衛門哨，主要功能為負責管理大門車輛通行管制、人員出入登記與校內安全警戒維護。',
+                radius: 5.0,
+                colorTop: 0x90A4AE,
+                facilities: {
+                    '主要功能': ['管理大門車輛通行', '校園安全警戒與門禁管制']
+                }
+            },
+            {
+                id: 'guanghui',
+                name: '光輝館',
+                desc: '主要功能為學校大型集會、典禮活動、全校活動與表演展演場所。',
+                radius: 6.0,
+                colorTop: 0x90A4AE,
+                facilities: {
+                    '主要功能': ['大型集會活動場所', '全校典禮與綜合展演廳']
+                }
+            },
+            {
+                id: 'old_south',
+                name: '舊南棟',
+                desc: '為兩層樓溫馨教學大樓，擁有低年級基礎教育與多功能藝能教室。',
+                radius: 6.5,
+                floors: 2,
+                colorTop: 0x9CCC65,
+                facilities: {
+                    '主要設施': ['低年級教室', '自然教室', '音樂教室', '語言教室', '學習成長中心']
+                }
+            },
+            {
+                id: 'playground',
+                name: '操場與光電球場',
+                desc: '左側為藍色籃球場（含三分線與籃球架），右側為標準紅土跑道操場，提供體育課與下課運動場所。',
+                radius: 8.5,
+                isPlayground: true,
+                colorTop: 0x66BB6A,
+                facilities: {
+                    '主要功能': ['藍色籃球場 (左側)', '操場紅土跑道 (右側)', '體育課與下課運動場所']
+                }
+            },
+            {
+                id: 'tennis',
+                name: '網球場與多功能球場',
+                desc: '繪有標準網球場線條並配備 3D 網球網，主要功能為提供學校網球隊練習與比賽場所。',
+                radius: 6.5,
+                isTennis: true,
+                colorTop: 0x4DB6AC,
+                facilities: {
+                    '主要功能': ['學校網球隊練習場所', '多功能綜合球場']
+                }
+            },
+            {
+                id: 'audiovisual',
+                name: '視聽教室',
+                desc: '主要功能為海韻國樂團練習場所，同時提供多媒體視聽教學使用。',
+                radius: 5.5,
+                colorTop: 0xA1887F,
+                facilities: {
+                    '主要功能': ['海韻國樂團練習場所', '多媒體視聽教學室']
+                }
+            },
+            {
+                id: 'haiyun',
+                name: '海韻樓',
+                desc: '為兩層樓教學建築，提供輔導陪伴、中年級班級教學與專長輔導空間。',
+                radius: 6.5,
+                floors: 2,
+                colorTop: 0x81C784,
+                facilities: {
+                    '主要設施': ['輔導室', '中年級班級教室', '自然教室', '賜福學苑']
+                }
+            },
+            {
+                id: 'kitchen',
+                name: '廚房',
+                desc: '主要功能為提供校園內全體師生每日營養健康之午餐製作與供應中心。',
+                radius: 5.0,
+                colorTop: 0xFFB74D,
+                facilities: {
+                    '主要功能': ['午餐中央廚房', '營養午餐供應中心']
+                }
+            },
+            {
+                id: 'kindergarten',
+                name: '幼兒園',
+                desc: '為兩層樓幼兒教學專區。內部設有柔道教室，主要功能是提供學校柔道隊練習與培訓場所。',
+                radius: 6.5,
+                floors: 2,
+                colorTop: 0xAED581,
+                facilities: {
+                    '班級與設施': ['幼兒園網頁', '熊貓班', '米老鼠班', '乖兔班', '柔道教室 (柔道隊練習場所)']
+                }
+            }
+        ];
+
+        // --- Three.js Global Variables ---
+        let scene, camera, renderer, controls;
+        let islands = [];
+        let characters = [];
+        let bridgesInfo = [];
+        let raycaster, mouse;
+        let labelsContainer;
+        let waterMesh, cloudsGroup;
+        let ambientLight, sunLight, hemiLight;
+        let currentMode = 'realtime';
+
+        // --- Lighting Mode Configurations ---
+        const lightingPresets = {
+            day: {
+                bg: 0x87CEEB,
+                fog: 0x87CEEB,
+                ambientColor: 0xFFFFFF,
+                ambientIntensity: 0.65,
+                sunColor: 0xFFF5E6,
+                sunIntensity: 0.9,
+                sunPos: [40, 60, 20],
+                hemiSky: 0x87CEEB,
+                hemiGround: 0x388E3C,
+                hemiIntensity: 0.35,
+                waterColor: 0x29B6F6,
+                weatherText: '晴朗陽光',
+                tempText: '26°C',
+                badgeBg: 'bg-amber-400/20 text-amber-600',
+                iconSvg: `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>`
+            },
+            dusk: {
+                bg: 0xD35400,
+                fog: 0xD35400,
+                ambientColor: 0xFFB74D,
+                ambientIntensity: 0.55,
+                sunColor: 0xFF6F00,
+                sunIntensity: 1.1,
+                sunPos: [70, 20, 10],
+                hemiSky: 0xFB8C00,
+                hemiGround: 0x2E7D32,
+                hemiIntensity: 0.4,
+                waterColor: 0xE64A19,
+                weatherText: '美麗晚霞',
+                tempText: '22°C',
+                badgeBg: 'bg-orange-500/20 text-orange-600',
+                iconSvg: `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v2m0 14v2m9-9h-2M5 12H3m15.364 6.364l-1.414-1.414M6.343 6.343L4.929 4.929m12.728 0l-1.414 1.414M6.343 17.657l-1.414 1.414M12 8a4 4 0 100 8 4 4 0 000-8z"></path>`
+            },
+            night: {
+                bg: 0x0F172A,
+                fog: 0x0F172A,
+                ambientColor: 0x1A237E,
+                ambientIntensity: 0.3,
+                sunColor: 0x9FA8DA,
+                sunIntensity: 0.45,
+                sunPos: [-30, 50, -20],
+                hemiSky: 0x1A237E,
+                hemiGround: 0x0D1117,
+                hemiIntensity: 0.25,
+                waterColor: 0x01579B,
+                weatherText: '靜謐星空',
+                tempText: '19°C',
+                badgeBg: 'bg-indigo-500/20 text-indigo-400',
+                iconSvg: `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path>`
+            }
+        };
+
+        // --- Mode Switcher Logic ---
+        function setLightingMode(mode) {
+            currentMode = mode;
+
+            // Update active button styles mutually exclusively
+            const modes = ['realtime', 'day', 'dusk', 'night'];
+            modes.forEach(m => {
+                const btn = document.getElementById(`mode-${m}`);
+                if (!btn) return;
+                if (m === mode) {
+                    btn.className = "mode-btn px-2.5 py-1.5 rounded-xl text-xs font-black transition-all flex items-center gap-1 bg-blue-600 text-white shadow-md scale-105";
+                } else {
+                    btn.className = "mode-btn px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1 text-slate-700 hover:bg-white/60 hover:scale-105";
+                }
+            });
+
+            let effectivePresetKey = mode;
+            if (mode === 'realtime') {
+                const hour = new Date().getHours();
+                if (hour >= 6 && hour < 17) {
+                    effectivePresetKey = 'day';
+                } else if (hour >= 17 && hour < 19) {
+                    effectivePresetKey = 'dusk';
+                } else {
+                    effectivePresetKey = 'night';
+                }
+            }
+
+            applyLightingPreset(effectivePresetKey, mode === 'realtime');
+        }
+
+        function applyLightingPreset(key, isRealtime = false) {
+            const preset = lightingPresets[key];
+            if (!preset) return;
+
+            if (scene) {
+                scene.background.setHex(preset.bg);
+                if (scene.fog) scene.fog.color.setHex(preset.fog);
+            }
+
+            if (ambientLight) {
+                ambientLight.color.setHex(preset.ambientColor);
+                ambientLight.intensity = preset.ambientIntensity;
+            }
+
+            if (sunLight) {
+                sunLight.color.setHex(preset.sunColor);
+                sunLight.intensity = preset.sunIntensity;
+                sunLight.position.set(...preset.sunPos);
+            }
+
+            if (hemiLight) {
+                hemiLight.color.setHex(preset.hemiSky);
+                hemiLight.groundColor.setHex(preset.hemiGround);
+                hemiLight.intensity = preset.hemiIntensity;
+            }
+
+            if (waterMesh && waterMesh.material) {
+                waterMesh.material.color.setHex(preset.waterColor);
+            }
+
+            // Update UI elements
+            const statusTextEl = document.getElementById('weather-status-text');
+            const tempTextEl = document.getElementById('weather-temp-text');
+            const iconBgEl = document.getElementById('weather-icon-bg');
+            const iconSvgEl = document.getElementById('weather-icon-svg');
+
+            if (statusTextEl) {
+                statusTextEl.innerText = isRealtime ? `${preset.weatherText} (即時)` : preset.weatherText;
+            }
+            if (tempTextEl) tempTextEl.innerText = preset.tempText;
+            if (iconBgEl) iconBgEl.className = `p-2 rounded-xl flex items-center justify-center ${preset.badgeBg}`;
+            if (iconSvgEl) iconSvgEl.innerHTML = preset.iconSvg;
+        }
+
+        // --- Walking Character Class ---
+        class Character {
+            constructor(startPos, isBridgeWalker = false) {
+                this.group = new THREE.Group();
+                
+                const shirtColor = new THREE.Color().setHSL(Math.random(), 0.85, 0.55);
+                const shirtMat = new THREE.MeshStandardMaterial({ color: shirtColor, roughness: 0.5, flatShading: true });
+                const pantsMat = new THREE.MeshStandardMaterial({ color: 0x263238, roughness: 0.6 });
+                const skinMat = new THREE.MeshStandardMaterial({ color: 0xFFCCBC, roughness: 0.4, flatShading: true });
+
+                // Torso
+                this.body = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.5, 0.25), shirtMat);
+                this.body.position.y = 0.65;
+                this.body.castShadow = true;
+                this.group.add(this.body);
+
+                // Head
+                const head = new THREE.Mesh(new THREE.IcosahedronGeometry(0.22, 0), skinMat);
+                head.position.y = 1.05;
+                head.castShadow = true;
+                this.group.add(head);
+
+                // Hair / Cap
+                const hair = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.1, 0.25), new THREE.MeshStandardMaterial({ color: 0x3E2723 }));
+                hair.position.y = 1.22;
+                this.group.add(hair);
+
+                // Legs
+                const legGeo = new THREE.BoxGeometry(0.12, 0.4, 0.12);
+                this.leftLeg = new THREE.Mesh(legGeo, pantsMat);
+                this.leftLeg.position.set(-0.1, 0.2, 0);
+                this.leftLeg.castShadow = true;
+                this.group.add(this.leftLeg);
+
+                this.rightLeg = new THREE.Mesh(legGeo, pantsMat);
+                this.rightLeg.position.set(0.1, 0.2, 0);
+                this.rightLeg.castShadow = true;
+                this.group.add(this.rightLeg);
+
+                // Arms
+                const armGeo = new THREE.BoxGeometry(0.1, 0.38, 0.1);
+                this.leftArm = new THREE.Mesh(armGeo, shirtMat);
+                this.leftArm.position.set(-0.27, 0.6, 0);
+                this.group.add(this.leftArm);
+
+                this.rightArm = new THREE.Mesh(armGeo, shirtMat);
+                this.rightArm.position.set(0.27, 0.6, 0);
+                this.group.add(this.rightArm);
+
+                this.isBridgeWalker = isBridgeWalker;
+                this.group.position.copy(startPos);
+
+                this.target = new THREE.Vector3();
+                this.speed = 0.02 + Math.random() * 0.02;
+                this.walkCycle = Math.random() * 100;
+                this.isIdle = false;
+                this.idleTimer = 0;
+
+                if (this.isBridgeWalker && bridgesInfo.length > 0) {
+                    this.bridge = bridgesInfo[Math.floor(Math.random() * bridgesInfo.length)];
+                    this.bridgeDir = Math.random() > 0.5 ? 1 : -1;
+                    this.lateralOffset = (Math.random() - 0.5) * (this.bridge.width - 0.8);
+                    this.setBridgeTarget();
+                } else {
+                    this.homePos = startPos.clone();
+                    this.radius = 4.5;
+                    this.pickIslandTarget();
+                }
+
+                scene.add(this.group);
+            }
+
+            setBridgeTarget() {
+                if (!this.bridge) return;
+                const endPt = this.bridgeDir === 1 ? this.bridge.pEnd.clone() : this.bridge.pStart.clone();
+                const bDir = this.bridge.pEnd.clone().sub(this.bridge.pStart).normalize();
+                const perp = new THREE.Vector3(-bDir.z, 0, bDir.x).multiplyScalar(this.lateralOffset);
+                this.target = endPt.add(perp);
+                this.target.y = 0.75;
+            }
+
+            pickIslandTarget() {
+                const a = Math.random() * Math.PI * 2;
+                const d = Math.random() * this.radius;
+                this.target.set(this.homePos.x + Math.cos(a) * d, 0.75, this.homePos.z + Math.sin(a) * d);
+            }
+
+            update(time) {
+                if (this.isIdle) {
+                    this.idleTimer -= 0.016;
+                    this.leftLeg.rotation.x = 0;
+                    this.rightLeg.rotation.x = 0;
+                    this.leftArm.rotation.x = 0;
+                    this.rightArm.rotation.x = 0;
+                    if (this.idleTimer <= 0) {
+                        this.isIdle = false;
+                        if (this.isBridgeWalker) {
+                            this.bridgeDir *= -1;
+                            if (Math.random() < 0.35 && bridgesInfo.length > 1) {
+                                this.bridge = bridgesInfo[Math.floor(Math.random() * bridgesInfo.length)];
+                                this.lateralOffset = (Math.random() - 0.5) * (this.bridge.width - 0.8);
+                            }
+                            this.setBridgeTarget();
+                        } else {
+                            this.pickIslandTarget();
+                        }
+                    }
+                    return;
+                }
+
+                const dir = this.target.clone().sub(this.group.position);
+                dir.y = 0;
+                
+                if (dir.length() < 0.5) {
+                    this.isIdle = true;
+                    this.idleTimer = 1 + Math.random() * 2.0;
+                } else {
+                    dir.normalize();
+                    this.group.position.add(dir.clone().multiplyScalar(this.speed));
+                    const lookTarget = this.group.position.clone().add(dir);
+                    this.group.lookAt(lookTarget);
+
+                    this.walkCycle += 0.15;
+                    const swing = Math.sin(this.walkCycle) * 0.6;
+                    this.leftLeg.rotation.x = swing;
+                    this.rightLeg.rotation.x = -swing;
+                    this.leftArm.rotation.x = -swing;
+                    this.rightArm.rotation.x = swing;
+                }
+            }
+        }
+
+        // --- Texture Generation Functions ---
+        function createTennisCourtTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 512;
+            canvas.height = 256;
+            const ctx = canvas.getContext('2d');
+            
+            ctx.fillStyle = '#2A6888';
+            ctx.fillRect(0, 0, 512, 256);
+            ctx.fillStyle = '#3B8256';
+            ctx.fillRect(32, 32, 448, 192);
+            
+            ctx.strokeStyle = '#FFFFFF';
+            ctx.lineWidth = 4;
+            ctx.strokeRect(32, 32, 448, 192);
+            ctx.strokeRect(64, 32, 384, 192);
+            
+            ctx.beginPath();
+            ctx.moveTo(256, 32); ctx.lineTo(256, 224);
+            ctx.moveTo(128, 64); ctx.lineTo(128, 192);
+            ctx.moveTo(384, 64); ctx.lineTo(384, 192);
+            ctx.moveTo(128, 128); ctx.lineTo(384, 128);
+            ctx.stroke();
+            
+            return new THREE.CanvasTexture(canvas);
+        }
+
+        function createPlaygroundTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 512;
+            canvas.height = 300;
+            const ctx = canvas.getContext('2d');
+            
+            ctx.fillStyle = '#66BB6A';
+            ctx.fillRect(0, 0, 512, 300);
+            
+            // Left: Basketball court
+            ctx.fillStyle = '#1E88E5';
+            ctx.fillRect(20, 20, 220, 260);
+            ctx.strokeStyle = '#FFFFFF';
+            ctx.lineWidth = 3;
+            ctx.strokeRect(20, 20, 220, 260);
+            
+            ctx.beginPath();
+            ctx.moveTo(130, 20); ctx.lineTo(130, 280);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.arc(130, 150, 40, 0, Math.PI * 2);
+            ctx.stroke();
+            
+            ctx.strokeRect(20, 100, 50, 100);
+            ctx.beginPath(); ctx.arc(70, 150, 30, -Math.PI/2, Math.PI/2); ctx.stroke();
+            ctx.strokeRect(190, 100, 50, 100);
+            ctx.beginPath(); ctx.arc(190, 150, 30, Math.PI/2, -Math.PI/2); ctx.stroke();
+            
+            // Right: Oval Track
+            ctx.fillStyle = '#D84315';
+            ctx.beginPath();
+            ctx.roundRect(260, 30, 230, 240, [100]);
+            ctx.fill();
+            ctx.lineWidth = 2;
+            ctx.strokeStyle = '#FFFFFF';
+            ctx.stroke();
+            
+            ctx.fillStyle = '#4CAF50';
+            ctx.beginPath();
+            ctx.roundRect(290, 60, 170, 180, [80]);
+            ctx.fill();
+            ctx.stroke();
+
+            return new THREE.CanvasTexture(canvas);
+        }
+
+        // --- Door Mesh Generator ---
+        function createDoorMesh(width = 1.6, height = 1.5) {
+            const doorGroup = new THREE.Group();
+            
+            const frameMat = new THREE.MeshStandardMaterial({ color: 0x212121, roughness: 0.5 });
+            const frame = new THREE.Mesh(new THREE.BoxGeometry(width + 0.2, height + 0.1, 0.15), frameMat);
+            frame.position.y = height / 2;
+            frame.castShadow = true;
+            doorGroup.add(frame);
+
+            const glassMat = new THREE.MeshStandardMaterial({ color: 0x80DEEA, roughness: 0.1, transparent: true, opacity: 0.75 });
+            const leftDoor = new THREE.Mesh(new THREE.BoxGeometry(width / 2 - 0.05, height - 0.1, 0.08), glassMat);
+            leftDoor.position.set(-width / 4, height / 2, 0.02);
+            doorGroup.add(leftDoor);
+
+            const rightDoor = leftDoor.clone();
+            rightDoor.position.x = width / 4;
+            doorGroup.add(rightDoor);
+
+            const handleMat = new THREE.MeshStandardMaterial({ color: 0xFFD54F, roughness: 0.3, metalness: 0.8 });
+            const handleLeft = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.3), handleMat);
+            handleLeft.position.set(-0.06, height / 2, 0.08);
+            doorGroup.add(handleLeft);
+
+            const handleRight = handleLeft.clone();
+            handleRight.position.x = 0.06;
+            doorGroup.add(handleRight);
+
+            const awningMat = new THREE.MeshStandardMaterial({ color: 0x1565C0, flatShading: true });
+            const awning = new THREE.Mesh(new THREE.BoxGeometry(width + 0.6, 0.15, 0.6), awningMat);
+            awning.position.set(0, height + 0.1, 0.25);
+            awning.castShadow = true;
+            doorGroup.add(awning);
+
+            return doorGroup;
+        }
+
+        // --- Multi-Story Building Generator ---
+        function createMultiStoryBuilding(floors, width, depth, wallColor = 0xF5F5F5, roofColor = 0xD32F2F, hasDoor = true) {
+            const group = new THREE.Group();
+            const floorHeight = 1.8;
+            const wallMat = new THREE.MeshStandardMaterial({ color: wallColor, roughness: 0.4, flatShading: true });
+            const windowMat = new THREE.MeshStandardMaterial({ color: 0x37474F, roughness: 0.2 });
+            const ledgeMat = new THREE.MeshStandardMaterial({ color: 0xE0E0E0, flatShading: true });
+            const roofMat = new THREE.MeshStandardMaterial({ color: roofColor, flatShading: true });
+
+            for (let f = 0; f < floors; f++) {
+                const floorY = f * floorHeight + floorHeight / 2;
+                
+                const floorMesh = new THREE.Mesh(new THREE.BoxGeometry(width, floorHeight, depth), wallMat);
+                floorMesh.position.y = floorY;
+                floorMesh.castShadow = true;
+                floorMesh.receiveShadow = true;
+                group.add(floorMesh);
+
+                if (f > 0) {
+                    const ledge = new THREE.Mesh(new THREE.BoxGeometry(width + 0.2, 0.15, depth + 0.2), ledgeMat);
+                    ledge.position.y = f * floorHeight;
+                    group.add(ledge);
+                }
+
+                const numWindows = Math.max(2, Math.floor(width / 1.5));
+                const winWidth = 0.8;
+                const winHeight = 0.8;
+                const spacing = width / (numWindows + 1);
+
+                for (let i = 1; i <= numWindows; i++) {
+                    const winX = -width / 2 + spacing * i;
+                    
+                    if (f > 0 || !hasDoor || Math.abs(winX) > 1.2) {
+                        const winFront = new THREE.Mesh(new THREE.PlaneGeometry(winWidth, winHeight), windowMat);
+                        winFront.position.set(winX, floorY, depth / 2 + 0.02);
+                        group.add(winFront);
+
+                        const winBack = new THREE.Mesh(new THREE.PlaneGeometry(winWidth, winHeight), windowMat);
+                        winBack.position.set(winX, floorY, -depth / 2 - 0.02);
+                        winBack.rotation.y = Math.PI;
+                        group.add(winBack);
+                    }
+                }
+            }
+
+            const totalHeight = floors * floorHeight;
+            const roof = new THREE.Mesh(new THREE.BoxGeometry(width + 0.4, 0.3, depth + 0.4), roofMat);
+            roof.position.y = totalHeight + 0.15;
+            roof.castShadow = true;
+            group.add(roof);
+
+            if (hasDoor) {
+                const door = createDoorMesh(1.6, 1.4);
+                door.position.set(0, 0, depth / 2 + 0.01);
+                group.add(door);
+            }
+
+            return group;
+        }
+
+        // --- Circular Water Pool & Refined Carp Sculpture Generator ---
+        function createCarpPoolSculpture() {
+            const poolGroup = new THREE.Group();
+
+            // Pool Dimensions
+            const rimRadius = 2.4;
+            const rimHeight = 0.45;
+            
+            // Outer Marble Rim Base
+            const baseRimMat = new THREE.MeshStandardMaterial({ color: 0xCFD8DC, roughness: 0.3, metalness: 0.1 });
+            const poolRimBase = new THREE.Mesh(new THREE.CylinderGeometry(rimRadius + 0.25, rimRadius + 0.35, 0.12, 32), baseRimMat);
+            poolRimBase.position.y = 0.06;
+            poolRimBase.castShadow = true;
+            poolRimBase.receiveShadow = true;
+            poolGroup.add(poolRimBase);
+
+            // Hollow Stone Wall Rim
+            const rimMat = new THREE.MeshStandardMaterial({ color: 0xE0E0E0, roughness: 0.3 });
+            const poolWallOuter = new THREE.Mesh(new THREE.CylinderGeometry(rimRadius + 0.1, rimRadius + 0.15, rimHeight, 32), rimMat);
+            poolWallOuter.position.y = rimHeight / 2 + 0.05;
+            poolWallOuter.castShadow = true;
+            poolWallOuter.receiveShadow = true;
+            poolGroup.add(poolWallOuter);
+
+            // Dark Tiled Basin Floor (Creates depth underwater)
+            const basinFloorMat = new THREE.MeshStandardMaterial({ color: 0x004D40, roughness: 0.6 });
+            const basinFloor = new THREE.Mesh(new THREE.CylinderGeometry(rimRadius - 0.1, rimRadius - 0.1, 0.05, 32), basinFloorMat);
+            basinFloor.position.y = 0.1;
+            poolGroup.add(basinFloor);
+
+            // Vibrant Liquid Water Surface
+            const waterMat = new THREE.MeshStandardMaterial({ 
+                color: 0x00E5FF, 
+                emissive: 0x00838F, 
+                emissiveIntensity: 0.25, 
+                roughness: 0.05, 
+                metalness: 0.3, 
+                transparent: true, 
+                opacity: 0.82 
+            });
+            const poolWater = new THREE.Mesh(new THREE.CylinderGeometry(rimRadius - 0.05, rimRadius - 0.08, 0.3, 32), waterMat);
+            poolWater.position.y = 0.26;
+            poolGroup.add(poolWater);
+
+            // Concentric Ripples on Top Water Level
+            const ringMat = new THREE.MeshStandardMaterial({ color: 0xE0F7FA, transparent: true, opacity: 0.75 });
+            const waterRing1 = new THREE.Mesh(new THREE.RingGeometry(0.5, 1.1, 32), ringMat);
+            waterRing1.rotation.x = -Math.PI / 2;
+            waterRing1.position.y = 0.42;
+            poolGroup.add(waterRing1);
+
+            const waterRing2 = new THREE.Mesh(new THREE.RingGeometry(1.3, 1.85, 32), ringMat);
+            waterRing2.rotation.x = -Math.PI / 2;
+            waterRing2.position.y = 0.42;
+            poolGroup.add(waterRing2);
+
+            // Floating Lily Pads on Water
+            const lilyMat = new THREE.MeshStandardMaterial({ color: 0x2E7D32, roughness: 0.6 });
+            const lilyPositions = [
+                { r: 1.4, a: 0.8 },
+                { r: 1.6, a: 2.5 },
+                { r: 1.2, a: 4.8 }
+            ];
+            lilyPositions.forEach(p => {
+                const pad = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.25, 0.02, 12), lilyMat);
+                pad.position.set(Math.cos(p.a) * p.r, 0.425, Math.sin(p.a) * p.r);
+                poolGroup.add(pad);
+            });
+
+            // Swimming Mini Koi Fish inside Pool Water
+            const miniKoiMat = new THREE.MeshStandardMaterial({ color: 0xFF5722 });
+            for (let i = 0; i < 4; i++) {
+                const angle = (i / 4) * Math.PI * 2 + 0.3;
+                const dist = 1.3;
+                const fish = new THREE.Mesh(new THREE.ConeGeometry(0.06, 0.22, 8), miniKoiMat);
+                fish.rotation.x = Math.PI / 2;
+                fish.rotation.z = -angle + Math.PI / 2;
+                fish.position.set(Math.cos(angle) * dist, 0.28, Math.sin(angle) * dist);
+                poolGroup.add(fish);
+            }
+
+            // Fountain Spout Water Jets Around Center Pedestal
+            const spoutMat = new THREE.MeshStandardMaterial({ color: 0xB2EBF2, transparent: true, opacity: 0.85 });
+            for (let i = 0; i < 6; i++) {
+                const a = (i / 6) * Math.PI * 2;
+                const spout = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.05, 0.35, 8), spoutMat);
+                spout.position.set(Math.cos(a) * 0.8, 0.52, Math.sin(a) * 0.8);
+                spout.rotation.x = Math.sin(a) * 0.2;
+                spout.rotation.z = -Math.cos(a) * 0.2;
+                poolGroup.add(spout);
+            }
+
+            // Sculpture Base Pedestal (Sculpted Stone)
+            const pedestalMat = new THREE.MeshStandardMaterial({ color: 0x455A64, roughness: 0.5, metalness: 0.2 });
+            const pedestalBase = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.65, 0.2, 16), pedestalMat);
+            pedestalBase.position.y = 0.45;
+            pedestalBase.castShadow = true;
+            poolGroup.add(pedestalBase);
+
+            const pedestalColumn = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.45, 0.5, 16), pedestalMat);
+            pedestalColumn.position.y = 0.7;
+            pedestalColumn.castShadow = true;
+            poolGroup.add(pedestalColumn);
+
+            // --- CARP STATUE (SCALED DOWN & HIGHLY REFINED KOI) ---
+            const carpGroup = new THREE.Group();
+            carpGroup.position.set(0, 1.05, 0);
+            carpGroup.scale.set(0.62, 0.62, 0.62); // Scaled down to ~62% for refined proportion
+
+            // Shiny Materials for Detailed Koi Sculpture
+            const carpOrangeMat = new THREE.MeshStandardMaterial({ color: 0xFF5722, roughness: 0.25, metalness: 0.35 });
+            const carpWhiteMat = new THREE.MeshStandardMaterial({ color: 0xFFFAEF, roughness: 0.2, metalness: 0.2 });
+            const carpGoldMat = new THREE.MeshStandardMaterial({ color: 0xFFD54F, roughness: 0.2, metalness: 0.7 });
+            const carpBlackMat = new THREE.MeshStandardMaterial({ color: 0x212121, roughness: 0.3, metalness: 0.3 });
+            const finMat = new THREE.MeshStandardMaterial({ color: 0xFF7043, roughness: 0.2, metalness: 0.4, transparent: true, opacity: 0.92 });
+
+            // 1. Water Pillar Supporting the Leaping Carp
+            const jetMat = new THREE.MeshStandardMaterial({ color: 0x80DEEA, roughness: 0.1, transparent: true, opacity: 0.75 });
+            const waterJet = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.35, 0.8, 12), jetMat);
+            waterJet.position.set(0, -0.3, -0.1);
+            waterJet.rotation.x = Math.PI / 12;
+            carpGroup.add(waterJet);
+
+            // 2. Curved Body Segments (S-curve Leaping Posture)
+            // Head
+            const headGroup = new THREE.Group();
+            headGroup.position.set(0, 0.85, 0.2);
+            headGroup.rotation.x = -Math.PI / 5;
+
+            const headSnout = new THREE.Mesh(new THREE.ConeGeometry(0.32, 0.55, 16), carpOrangeMat);
+            headSnout.position.set(0, 0, 0);
+            headSnout.rotation.x = -Math.PI / 2;
+            headSnout.castShadow = true;
+            headGroup.add(headSnout);
+
+            // Refined & Proportional Carp Mouth Ring
+            const mouth = new THREE.Mesh(new THREE.TorusGeometry(0.045, 0.015, 8, 16), carpWhiteMat);
+            mouth.position.set(0, 0, 0.27);
+            headGroup.add(mouth);
+
+            // Barbels (Whisker pairs fitted to refined mouth)
+            const barbelMat = new THREE.MeshStandardMaterial({ color: 0xFFD54F, roughness: 0.3 });
+            const barbelLeft = new THREE.Mesh(new THREE.CylinderGeometry(0.01, 0.004, 0.2, 8), barbelMat);
+            barbelLeft.position.set(-0.06, -0.03, 0.26);
+            barbelLeft.rotation.z = Math.PI / 4;
+            barbelLeft.rotation.x = -Math.PI / 6;
+            headGroup.add(barbelLeft);
+
+            const barbelRight = barbelLeft.clone();
+            barbelRight.position.x = 0.06;
+            barbelRight.rotation.z = -Math.PI / 4;
+            headGroup.add(barbelRight);
+
+            // Eyes (Socket + Pupil)
+            const eyeSocketMat = new THREE.MeshStandardMaterial({ color: 0xFFFAEF, roughness: 0.2 });
+            const eyeLeft = new THREE.Mesh(new THREE.SphereGeometry(0.075, 12, 12), eyeSocketMat);
+            eyeLeft.position.set(-0.21, 0.08, 0.08);
+            const pupilLeft = new THREE.Mesh(new THREE.SphereGeometry(0.045, 10, 10), carpBlackMat);
+            pupilLeft.position.set(-0.23, 0.08, 0.1);
+            headGroup.add(eyeLeft);
+            headGroup.add(pupilLeft);
+
+            const eyeRight = eyeLeft.clone();
+            eyeRight.position.x = 0.21;
+            const pupilRight = pupilLeft.clone();
+            pupilRight.position.x = 0.23;
+            headGroup.add(eyeRight);
+            headGroup.add(pupilRight);
+
+            carpGroup.add(headGroup);
+
+            // Torso / Mid Body
+            const torso = new THREE.Mesh(new THREE.SphereGeometry(0.42, 16, 16), carpOrangeMat);
+            torso.scale.set(0.85, 1.25, 1.1);
+            torso.position.set(0, 0.48, 0.08);
+            torso.rotation.x = -Math.PI / 10;
+            torso.castShadow = true;
+            carpGroup.add(torso);
+
+            // Belly Overlay (White underside)
+            const belly = new THREE.Mesh(new THREE.SphereGeometry(0.38, 16, 16), carpWhiteMat);
+            belly.scale.set(0.72, 1.15, 0.95);
+            belly.position.set(0, 0.44, 0.14);
+            belly.rotation.x = -Math.PI / 10;
+            carpGroup.add(belly);
+
+            // Distinctive Black Koi Patches
+            const patch1 = new THREE.Mesh(new THREE.SphereGeometry(0.18, 10, 10), carpBlackMat);
+            patch1.scale.set(0.6, 1.1, 0.4);
+            patch1.position.set(0.18, 0.58, 0.05);
+            carpGroup.add(patch1);
+
+            const patch2 = new THREE.Mesh(new THREE.SphereGeometry(0.14, 10, 10), carpBlackMat);
+            patch2.scale.set(0.5, 0.9, 0.4);
+            patch2.position.set(-0.16, 0.35, 0.0);
+            carpGroup.add(patch2);
+
+            // Tail Stem
+            const tailStem = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.14, 0.7, 16), carpOrangeMat);
+            tailStem.position.set(0, 0.08, -0.18);
+            tailStem.rotation.x = Math.PI / 5;
+            tailStem.castShadow = true;
+            carpGroup.add(tailStem);
+
+            const tailStemEnd = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.06, 0.45, 12), carpOrangeMat);
+            tailStemEnd.position.set(0, -0.22, -0.38);
+            tailStemEnd.rotation.x = Math.PI / 3;
+            tailStemEnd.castShadow = true;
+            carpGroup.add(tailStemEnd);
+
+            // 3. Detailed Fins
+            // Pectoral Fins (Pair)
+            const pectoralFinGroupL = new THREE.Group();
+            pectoralFinGroupL.position.set(-0.32, 0.52, 0.12);
+            pectoralFinGroupL.rotation.set(-Math.PI / 6, -Math.PI / 4, -Math.PI / 4);
+
+            const pecFinL = new THREE.Mesh(new THREE.ConeGeometry(0.28, 0.55, 3), finMat);
+            pecFinL.scale.set(0.08, 1.0, 1.3);
+            pecFinL.castShadow = true;
+            pectoralFinGroupL.add(pecFinL);
+            carpGroup.add(pectoralFinGroupL);
+
+            const pectoralFinGroupR = new THREE.Group();
+            pectoralFinGroupR.position.set(0.32, 0.52, 0.12);
+            pectoralFinGroupR.rotation.set(-Math.PI / 6, Math.PI / 4, Math.PI / 4);
+
+            const pecFinR = pecFinL.clone();
+            pectoralFinGroupR.add(pecFinR);
+            carpGroup.add(pectoralFinGroupR);
+
+            // Pelvic Fins
+            const pelvicFinL = new THREE.Mesh(new THREE.ConeGeometry(0.18, 0.38, 3), finMat);
+            pelvicFinL.scale.set(0.06, 1.0, 1.0);
+            pelvicFinL.position.set(-0.16, 0.22, 0.15);
+            pelvicFinL.rotation.set(Math.PI / 4, -Math.PI / 6, -Math.PI / 6);
+            carpGroup.add(pelvicFinL);
+
+            const pelvicFinR = pelvicFinL.clone();
+            pelvicFinR.position.x = 0.16;
+            pelvicFinR.rotation.set(Math.PI / 4, Math.PI / 6, Math.PI / 6);
+            carpGroup.add(pelvicFinR);
+
+            // Dorsal Fin Crest
+            const dorsalFinGroup = new THREE.Group();
+            dorsalFinGroup.position.set(0, 0.65, -0.15);
+            dorsalFinGroup.rotation.x = -Math.PI / 8;
+
+            const dorsalMain = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.35, 0.55), finMat);
+            dorsalMain.position.set(0, 0.18, 0);
+            dorsalMain.castShadow = true;
+            dorsalFinGroup.add(dorsalMain);
+
+            const dorsalSpine = new THREE.Mesh(new THREE.ConeGeometry(0.05, 0.4, 4), carpGoldMat);
+            dorsalSpine.position.set(0, 0.2, 0.22);
+            dorsalSpine.rotation.x = -Math.PI / 6;
+            dorsalFinGroup.add(dorsalSpine);
+
+            carpGroup.add(dorsalFinGroup);
+
+            // Double-Lobed Tail Fin
+            const tailFinGroup = new THREE.Group();
+            tailFinGroup.position.set(0, -0.38, -0.52);
+            tailFinGroup.rotation.x = Math.PI / 2.5;
+
+            const tailUpperLobe = new THREE.Mesh(new THREE.ConeGeometry(0.32, 0.65, 4), finMat);
+            tailUpperLobe.scale.set(0.08, 1.0, 1.2);
+            tailUpperLobe.position.set(0, 0.25, -0.1);
+            tailUpperLobe.rotation.x = -Math.PI / 6;
+            tailUpperLobe.castShadow = true;
+            tailFinGroup.add(tailUpperLobe);
+
+            const tailLowerLobe = new THREE.Mesh(new THREE.ConeGeometry(0.28, 0.55, 4), finMat);
+            tailLowerLobe.scale.set(0.08, 1.0, 1.1);
+            tailLowerLobe.position.set(0, -0.18, -0.05);
+            tailLowerLobe.rotation.x = Math.PI / 6;
+            tailLowerLobe.castShadow = true;
+            tailFinGroup.add(tailLowerLobe);
+
+            const tailTrim = new THREE.Mesh(new THREE.TorusGeometry(0.25, 0.02, 6, 12), carpGoldMat);
+            tailTrim.position.set(0, 0.05, -0.15);
+            tailTrim.rotation.y = Math.PI / 2;
+            tailFinGroup.add(tailTrim);
+
+            carpGroup.add(tailFinGroup);
+
+            // 4. Dynamic Water Splash Spray
+            const splashMat = new THREE.MeshStandardMaterial({ color: 0xE0F7FA, transparent: true, opacity: 0.8, flatShading: true });
+            for (let i = 0; i < 8; i++) {
+                const splashAngle = (i / 8) * Math.PI * 2;
+                const dist = 0.38 + (i % 2) * 0.12;
+                const splash = new THREE.Mesh(new THREE.ConeGeometry(0.09, 0.32, 5), splashMat);
+                splash.position.set(Math.cos(splashAngle) * dist, -0.35, Math.sin(splashAngle) * dist - 0.1);
+                splash.rotation.x = Math.cos(splashAngle) * 0.4;
+                splash.rotation.z = Math.sin(splashAngle) * 0.4;
+                carpGroup.add(splash);
+
+                const drop = new THREE.Mesh(new THREE.SphereGeometry(0.04, 8, 8), jetMat);
+                drop.position.set(Math.cos(splashAngle) * (dist + 0.15), -0.2 + (i % 3) * 0.08, Math.sin(splashAngle) * (dist + 0.15) - 0.1);
+                carpGroup.add(drop);
+            }
+
+            poolGroup.add(carpGroup);
+            return poolGroup;
+        }
+
+        // --- Low-Poly Tree Mesh ---
+        function createTree() {
+            const tree = new THREE.Group();
+            const trunkGeo = new THREE.CylinderGeometry(0.15, 0.25, 1.2, 6);
+            const trunkMat = new THREE.MeshStandardMaterial({ color: 0x5D4037, roughness: 0.9, flatShading: true });
+            const trunk = new THREE.Mesh(trunkGeo, trunkMat);
+            trunk.position.y = 0.6;
+            trunk.castShadow = true;
+            tree.add(trunk);
+
+            const leavesMat = new THREE.MeshStandardMaterial({ color: 0x33691E, roughness: 0.7, flatShading: true });
+            const leaves1 = new THREE.Mesh(new THREE.ConeGeometry(1.1, 1.8, 6), leavesMat);
+            leaves1.position.y = 1.8;
+            leaves1.castShadow = true;
+            tree.add(leaves1);
+
+            const leaves2 = new THREE.Mesh(new THREE.ConeGeometry(0.8, 1.4, 6), leavesMat);
+            leaves2.position.y = 2.4;
+            leaves2.castShadow = true;
+            tree.add(leaves2);
+
+            return tree;
+        }
+
+        // --- Create Single Island Structure ---
+        function createSingleIsland(data, x, y, z) {
+            const group = new THREE.Group();
+            group.position.set(x, y, z);
+            
+            group.userData = {
+                id: data.id,
+                name: data.name,
+                desc: data.desc,
+                radius: data.radius,
+                baseY: y,
+                floatOffset: Math.random() * Math.PI * 2,
+                targetScale: 1,
+                currentScale: 1
+            };
+
+            const label = document.createElement('div');
+            label.className = 'island-label glass-dark text-xs md:text-sm px-3.5 py-1.5 rounded-xl font-black tracking-wide text-amber-300 border border-amber-300/60 shadow-2xl flex items-center gap-2 hover:bg-slate-900/90 transition-all';
+            label.innerHTML = `
+                <span class="relative flex h-2.5 w-2.5 shrink-0">
+                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                    <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-500"></span>
+                </span>
+                <span>${data.name}</span>
+            `;
+            
+            label.addEventListener('click', (e) => {
+                e.stopPropagation();
+                openModal(data.id);
+            });
+
+            labelsContainer.appendChild(label);
+            group.userData.labelEl = label;
+
+            const r = data.radius;
+            const topColor = data.colorTop || 0x8BC34A;
+            
+            const dirtMat = new THREE.MeshStandardMaterial({ color: 0x6D4C41, roughness: 1.0, flatShading: true });
+            const grassMat = new THREE.MeshStandardMaterial({ color: topColor, roughness: 0.8, flatShading: true });
+            const segments = 12;
+
+            const dirt = new THREE.Mesh(new THREE.CylinderGeometry(r - 0.5, r * 0.3, r * 2, segments), dirtMat);
+            dirt.position.y = -r;
+            dirt.castShadow = true;
+            dirt.receiveShadow = true;
+            group.add(dirt);
+
+            const grass = new THREE.Mesh(new THREE.CylinderGeometry(r, r - 0.5, 1.5, segments), grassMat);
+            grass.position.y = 0;
+            grass.castShadow = true;
+            grass.receiveShadow = true;
+            group.add(grass);
+
+            const angleToMain = Math.atan2(-x, -z);
+
+            if (data.isMain) {
+                const mainBuildingGroup = new THREE.Group();
+
+                const northBuilding = createMultiStoryBuilding(3, 12, 7, 0xFAFAFA, 0xC62828, true);
+                northBuilding.position.set(0, 0.75, -5.5);
+                mainBuildingGroup.add(northBuilding);
+
+                const southBuilding = createMultiStoryBuilding(3, 12, 7, 0xFAFAFA, 0x1565C0, true);
+                southBuilding.position.set(0, 0.75, 5.5);
+                southBuilding.rotation.y = Math.PI;
+                mainBuildingGroup.add(southBuilding);
+
+                const frontEntranceGroup = new THREE.Group();
+                const porticoMat = new THREE.MeshStandardMaterial({ color: 0x1565C0, flatShading: true });
+                const porticoRoof = new THREE.Mesh(new THREE.BoxGeometry(5.2, 0.4, 2.2), porticoMat);
+                porticoRoof.position.set(0, 2.4, 0.5);
+                porticoRoof.castShadow = true;
+                frontEntranceGroup.add(porticoRoof);
+
+                const pillarMat = new THREE.MeshStandardMaterial({ color: 0xE0E0E0 });
+                const pillar1 = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.18, 2.4), pillarMat);
+                pillar1.position.set(-2.1, 1.2, 1.2);
+                frontEntranceGroup.add(pillar1);
+                const pillar2 = pillar1.clone();
+                pillar2.position.x = 2.1;
+                frontEntranceGroup.add(pillar2);
+
+                const mainDoor = createDoorMesh(2.8, 2.0);
+                mainDoor.position.set(0, 0.75, 0);
+                frontEntranceGroup.add(mainDoor);
+
+                const signBg = new THREE.Mesh(
+                    new THREE.BoxGeometry(3.2, 0.6, 0.15),
+                    new THREE.MeshStandardMaterial({ color: 0x0D47A1 })
+                );
+                signBg.position.set(0, 2.85, 0.2);
+                frontEntranceGroup.add(signBg);
+
+                // 正門門廊定位於面向警衛室方向 (+Z 軸方向)
+                frontEntranceGroup.position.set(0, 0, 8.2);
+
+                const bridgeCorridor = new THREE.Mesh(
+                    new THREE.BoxGeometry(4, 2.2, 5),
+                    new THREE.MeshStandardMaterial({ color: 0xB0BEC5, roughness: 0.3, flatShading: true })
+                );
+                bridgeCorridor.position.set(0, 4.2, 0);
+                bridgeCorridor.castShadow = true;
+                mainBuildingGroup.add(bridgeCorridor);
+
+                // 建築物主體維持原本旋轉角度不變
+                mainBuildingGroup.rotation.y = -Math.PI / 2;
+                group.add(mainBuildingGroup);
+
+                // 將大門與鯉魚圓形水池依序放置於面對警衛室的前方廣場
+                group.add(frontEntranceGroup);
+
+                const carpPoolGroup = createCarpPoolSculpture();
+                carpPoolGroup.position.set(0, 0.75, 12.5);
+                group.add(carpPoolGroup);
+
+            } else if (data.isTennis) {
+                const tex = createTennisCourtTexture();
+                const tennisGeo = new THREE.PlaneGeometry(9, 5);
+                const tennisMat = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.6 });
+                const court = new THREE.Mesh(tennisGeo, tennisMat);
+                court.rotation.x = -Math.PI / 2;
+                court.position.y = 0.76;
+                group.add(court);
+
+                const netMat = new THREE.MeshStandardMaterial({ color: 0xFFFFFF, transparent: true, opacity: 0.8 });
+                const net = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.6, 5.2), netMat);
+                net.position.y = 1.05;
+                group.add(net);
+
+            } else if (data.isPlayground) {
+                const tex = createPlaygroundTexture();
+                const playGeo = new THREE.PlaneGeometry(12, 7.5);
+                const playMat = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.6 });
+                const court = new THREE.Mesh(playGeo, playMat);
+                court.rotation.x = -Math.PI / 2;
+                court.position.y = 0.76;
+                group.add(court);
+
+                const poleMat = new THREE.MeshStandardMaterial({ color: 0x424242 });
+                const pole1 = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 1.8), poleMat);
+                pole1.position.set(-5.2, 1.6, 0);
+                group.add(pole1);
+                const board1 = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.8, 1.2), new THREE.MeshStandardMaterial({ color: 0xFFFFFF }));
+                board1.position.set(-5.15, 2.1, 0);
+                group.add(board1);
+
+            } else {
+                const floors = data.floors || 1;
+                const bWidth = Math.min(r * 1.2, 8);
+                const bDepth = Math.min(r * 1.0, 5);
+                const building = createMultiStoryBuilding(floors, bWidth, bDepth, 0xF5F5F5, 0x1976D2, true);
+                building.position.y = 0.75;
+                building.rotation.y = angleToMain;
+                group.add(building);
+            }
+
+            const numTrees = Math.floor(Math.random() * 3) + 2;
+            for (let i = 0; i < numTrees; i++) {
+                const tree = createTree();
+                const angle = Math.random() * Math.PI * 2;
+                const rad = (Math.random() * 0.3 + 0.55) * r;
+                tree.position.set(Math.cos(angle) * rad, 0.75, Math.sin(angle) * rad);
+                group.add(tree);
+            }
+
+            scene.add(group);
+            islands.push(group);
+            return group;
+        }
+
+        // --- Wide Connecting Bridge ---
+        function createConnectingBridge(x1, y1, z1, x2, y2, z2, subRadius, subId) {
+            const bridgeGroup = new THREE.Group();
+            
+            const start = new THREE.Vector3(x1, y1 + 0.7, z1);
+            const end = new THREE.Vector3(x2, y2 + 0.7, z2);
+            
+            const dir = end.clone().sub(start);
+            dir.normalize();
+            
+            const pStart = start.clone().add(dir.clone().multiplyScalar(10.0));
+            const pEnd = end.clone().sub(dir.clone().multiplyScalar(subRadius * 0.85));
+            const bridgeLen = pStart.distanceTo(pEnd);
+            const midPoint = pStart.clone().add(pEnd).multiplyScalar(0.5);
+
+            const bridgeWidth = 3.2;
+
+            const deckMat = new THREE.MeshStandardMaterial({ color: 0x8D6E63, roughness: 0.8, flatShading: true });
+            const deck = new THREE.Mesh(new THREE.BoxGeometry(bridgeWidth, 0.25, bridgeLen), deckMat);
+            deck.position.copy(midPoint);
+            deck.lookAt(pEnd);
+            deck.castShadow = true;
+            deck.receiveShadow = true;
+            bridgeGroup.add(deck);
+
+            const railMat = new THREE.MeshStandardMaterial({ color: 0x4E342E, roughness: 0.7 });
+            const leftRail = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.65, bridgeLen), railMat);
+            leftRail.position.set(-bridgeWidth / 2 + 0.08, 0.32, 0);
+            deck.add(leftRail);
+
+            const rightRail = leftRail.clone();
+            rightRail.position.x = bridgeWidth / 2 - 0.08;
+            deck.add(rightRail);
+
+            const lampMat = new THREE.MeshStandardMaterial({ color: 0xFFD54F });
+            const numLamps = Math.max(2, Math.floor(bridgeLen / 5));
+            for (let i = 1; i <= numLamps; i++) {
+                const lampZ = -bridgeLen / 2 + (bridgeLen / (numLamps + 1)) * i;
+                const lampL = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.7), railMat);
+                lampL.position.set(-bridgeWidth / 2 + 0.1, 0.55, lampZ);
+                const bulbL = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 8), lampMat);
+                bulbL.position.y = 0.4;
+                lampL.add(bulbL);
+                deck.add(lampL);
+
+                const lampR = lampL.clone();
+                lampR.position.x = bridgeWidth / 2 - 0.1;
+                deck.add(lampR);
+            }
+
+            const pillarMat = new THREE.MeshStandardMaterial({ color: 0x3E2723 });
+            const numPillars = Math.floor(bridgeLen / 4);
+            for(let i = 1; i <= numPillars; i++) {
+                const pos = pStart.clone().add(dir.clone().multiplyScalar((bridgeLen / (numPillars + 1)) * i));
+                const pillar = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.28, 5), pillarMat);
+                pillar.position.set(pos.x, pos.y - 2.5, pos.z);
+                bridgeGroup.add(pillar);
+            }
+
+            scene.add(bridgeGroup);
+
+            bridgesInfo.push({
+                pStart: pStart,
+                pEnd: pEnd,
+                midPoint: midPoint,
+                length: bridgeLen,
+                width: bridgeWidth,
+                subId: subId
+            });
+        }
+
+        // --- Build Campus Islands Layout ---
+        function buildCampusIslands() {
+            bridgesInfo = [];
+            characters = [];
+            islands = [];
+
+            const mainIslandData = campusData.find(d => d.isMain);
+            createSingleIsland(mainIslandData, 0, 0, 0);
+
+            const subIslandsData = campusData.filter(d => !d.isMain);
+            const numSub = subIslandsData.length;
+            const orbitRadius = 28;
+
+            subIslandsData.forEach((data, index) => {
+                const angle = Math.PI / 2 + (index / numSub) * Math.PI * 2;
+                const x = Math.cos(angle) * orbitRadius;
+                const z = Math.sin(angle) * orbitRadius;
+                const y = Math.sin(index * 1.5) * 0.4;
+
+                createSingleIsland(data, x, y, z);
+                createConnectingBridge(0, 0, 0, x, y, z, data.radius, data.id);
+            });
+
+            campusData.forEach(d => {
+                const isMain = d.isMain;
+                const islandObj = isMain ? islands.find(i => i.userData.id === 'main') : islands.find(i => i.userData.id === d.id);
+                const islandPos = islandObj ? islandObj.position.clone() : new THREE.Vector3(0,0,0);
+                const count = isMain ? 6 : 3;
+                for (let i = 0; i < count; i++) {
+                    characters.push(new Character(islandPos, false));
+                }
+            });
+
+            for (let i = 0; i < 14; i++) {
+                if (bridgesInfo.length > 0) {
+                    const randBridge = bridgesInfo[Math.floor(Math.random() * bridgesInfo.length)];
+                    const startP = Math.random() > 0.5 ? randBridge.pStart.clone() : randBridge.pEnd.clone();
+                    characters.push(new Character(startP, true));
+                }
+            }
+        }
+
+        // --- Lighting ---
+        function setupLighting() {
+            ambientLight = new THREE.AmbientLight(0xFFFFFF, 0.65);
+            scene.add(ambientLight);
+
+            sunLight = new THREE.DirectionalLight(0xFFF5E6, 0.9);
+            sunLight.position.set(40, 60, 20);
+            sunLight.castShadow = true;
+            sunLight.shadow.mapSize.width = 2048;
+            sunLight.shadow.mapSize.height = 2048;
+            sunLight.shadow.camera.near = 0.5;
+            sunLight.shadow.camera.far = 180;
+            const d = 55;
+            sunLight.shadow.camera.left = -d;
+            sunLight.shadow.camera.right = d;
+            sunLight.shadow.camera.top = d;
+            sunLight.shadow.camera.bottom = -d;
+            scene.add(sunLight);
+
+            hemiLight = new THREE.HemisphereLight(0x87CEEB, 0x388E3C, 0.35);
+            scene.add(hemiLight);
+        }
+
+        // --- Dynamic Water Ocean ---
+        function createOcean() {
+            const waterGeo = new THREE.PlaneGeometry(300, 300, 32, 32);
+            const waterMat = new THREE.MeshStandardMaterial({
+                color: 0x29B6F6,
+                roughness: 0.1,
+                metalness: 0.1,
+                transparent: true,
+                opacity: 0.85,
+                flatShading: true
+            });
+            waterMesh = new THREE.Mesh(waterGeo, waterMat);
+            waterMesh.rotation.x = -Math.PI / 2;
+            waterMesh.position.y = -2.5;
+            scene.add(waterMesh);
+        }
+
+        // --- Low-Poly Clouds ---
+        function createClouds() {
+            cloudsGroup = new THREE.Group();
+            const cloudMat = new THREE.MeshStandardMaterial({ color: 0xFFFFFF, roughness: 0.9, flatShading: true, transparent: true, opacity: 0.85 });
+            
+            for (let i = 0; i < 16; i++) {
+                const cloud = new THREE.Group();
+                const numPuffs = 3 + Math.floor(Math.random() * 3);
+                for (let j = 0; j < numPuffs; j++) {
+                    const puff = new THREE.Mesh(new THREE.DodecahedronGeometry(1.5 + Math.random() * 1.5), cloudMat);
+                    puff.position.set(j * 1.2, Math.random() * 0.5, Math.random() * 0.5);
+                    cloud.add(puff);
+                }
+                const angle = (i / 16) * Math.PI * 2;
+                const dist = 35 + Math.random() * 45;
+                cloud.position.set(Math.cos(angle) * dist, 16 + Math.random() * 8, Math.sin(angle) * dist);
+                cloudsGroup.add(cloud);
+            }
+            scene.add(cloudsGroup);
+        }
+
+        // --- Interaction Handlers ---
+        function onPointerDown(event) {
+            if (event.target !== renderer.domElement) return;
+
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(scene.children, true);
+
+            for (let i = 0; i < intersects.length; i++) {
+                let obj = intersects[i].object;
+                while (obj && !obj.userData.id && obj.parent) {
+                    obj = obj.parent;
+                }
+                if (obj && obj.userData && obj.userData.id) {
+                    openModal(obj.userData.id);
+                    break;
+                }
+            }
+        }
+
+        function onPointerMove(event) {
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(scene.children, true);
+
+            let hoveredIslandId = null;
+            for (let i = 0; i < intersects.length; i++) {
+                let obj = intersects[i].object;
+                while (obj && !obj.userData.id && obj.parent) {
+                    obj = obj.parent;
+                }
+                if (obj && obj.userData && obj.userData.id) {
+                    hoveredIslandId = obj.userData.id;
+                    break;
+                }
+            }
+
+            islands.forEach(island => {
+                if (island.userData.id === hoveredIslandId) {
+                    island.userData.targetScale = 1.08;
+                } else {
+                    island.userData.targetScale = 1.0;
+                }
+            });
+
+            document.body.style.cursor = hoveredIslandId ? 'pointer' : 'default';
+        }
+
+        // --- Modal Dialog Functions ---
+        function openModal(islandId) {
+            const data = campusData.find(d => d.id === islandId);
+            if (!data) return;
+
+            document.getElementById('modal-title').innerText = data.name;
+            document.getElementById('modal-desc').innerText = data.desc;
+
+            // Handle direct link for island title (e.g. 幼兒園)
+            const titleLinkContainer = document.getElementById('modal-title-link');
+            const islandUrl = officeLinks[data.name] || officeLinks[data.name.replace(/\s*\(.*?\)/g, '')];
+            if (islandUrl) {
+                titleLinkContainer.innerHTML = `
+                    <a href="${islandUrl}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1.5 px-3 py-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white text-xs font-bold rounded-xl shadow-md hover:shadow-lg transition-all hover:scale-105">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                        <span>前往專頁 ↗</span>
+                    </a>
+                `;
+            } else {
+                titleLinkContainer.innerHTML = '';
+            }
+
+            const facilitiesContainer = document.getElementById('modal-facilities');
+            facilitiesContainer.innerHTML = '';
+
+            if (data.facilities) {
+                Object.entries(data.facilities).forEach(([category, items]) => {
+                    const catTitle = document.createElement('div');
+                    catTitle.className = 'col-span-full font-bold text-xs text-blue-700 bg-blue-100/70 px-3 py-1 rounded-lg mt-1';
+                    catTitle.innerText = category;
+                    facilitiesContainer.appendChild(catTitle);
+
+                    items.forEach(item => {
+                        const linkUrl = officeLinks[item];
+                        if (linkUrl) {
+                            const linkCard = document.createElement('a');
+                            linkCard.href = linkUrl;
+                            linkCard.target = '_blank';
+                            linkCard.rel = 'noopener noreferrer';
+                            linkCard.className = 'p-2.5 bg-gradient-to-r from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 rounded-xl border border-blue-300 shadow-sm flex items-center justify-between text-xs md:text-sm text-blue-900 font-bold transition-all hover:scale-[1.02] hover:shadow-md group';
+                            linkCard.innerHTML = `
+                                <div class="flex items-center space-x-2">
+                                    <span class="w-2.5 h-2.5 rounded-full bg-blue-600 animate-pulse"></span>
+                                    <span>${item}</span>
+                                </div>
+                                <span class="inline-flex items-center gap-1 text-xs text-blue-600 group-hover:text-blue-800 font-extrabold bg-white/80 px-2 py-0.5 rounded-md border border-blue-200">
+                                    前往網頁 ↗
+                                </span>
+                            `;
+                            facilitiesContainer.appendChild(linkCard);
+                        } else {
+                            const itemCard = document.createElement('div');
+                            itemCard.className = 'p-2.5 bg-white/80 rounded-xl border border-slate-200/80 shadow-sm flex items-center space-x-2 text-xs md:text-sm text-slate-800 font-medium hover:bg-blue-50 transition-colors';
+                            itemCard.innerHTML = `
+                                <span class="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span>
+                                <span>${item}</span>
+                            `;
+                            facilitiesContainer.appendChild(itemCard);
+                        }
+                    });
+                });
+            }
+
+            const modal = document.getElementById('info-modal');
+            modal.classList.remove('opacity-0', 'pointer-events-none');
+            modal.children[0].classList.remove('scale-95');
+            modal.children[0].classList.add('scale-100');
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('info-modal');
+            modal.classList.add('opacity-0', 'pointer-events-none');
+            modal.children[0].classList.remove('scale-100');
+            modal.children[0].classList.add('scale-95');
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        // --- Main Scene Initialization ---
+        function init() {
+            // Restore custom uploaded logo if saved previously
+            const savedLogo = localStorage.getItem('qdps_120_logo');
+            if (savedLogo) {
+                const logoImg = document.getElementById('school-logo-img');
+                if (logoImg) logoImg.src = savedLogo;
+            }
+
+            const dateEl = document.getElementById('current-date');
+            const now = new Date();
+            const daysOfWeek = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
+            const dayName = daysOfWeek[now.getDay()];
+            dateEl.innerText = `${now.getFullYear()}/${String(now.getMonth()+1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')} (${dayName})`;
+
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x87CEEB);
+            scene.fog = new THREE.FogExp2(0x87CEEB, 0.008);
+
+            camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 35, 55);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.maxPolarAngle = Math.PI / 2.05;
+            controls.minDistance = 15;
+            controls.maxDistance = 110;
+            controls.target.set(0, 0, 0);
+
+            raycaster = new THREE.Raycaster();
+            mouse = new THREE.Vector2();
+            labelsContainer = document.getElementById('labels-container');
+
+            setupLighting();
+            createOcean();
+            createClouds();
+            buildCampusIslands();
+
+            setLightingMode('realtime');
+
+            window.addEventListener('resize', onWindowResize);
+            renderer.domElement.addEventListener('pointerdown', onPointerDown);
+            renderer.domElement.addEventListener('pointermove', onPointerMove);
+
+            document.getElementById('close-modal').addEventListener('click', closeModal);
+            document.getElementById('modal-ok-btn').addEventListener('click', closeModal);
+
+            animate();
+        }
+
+        // --- Render Loop ---
+        const clock = new THREE.Clock();
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const elapsedTime = clock.getElapsedTime();
+
+            controls.update();
+
+            if (waterMesh) {
+                const pos = waterMesh.geometry.attributes.position;
+                for (let i = 0; i < pos.count; i++) {
+                    const u = pos.getX(i);
+                    const v = pos.getY(i);
+                    const z = Math.sin(elapsedTime * 1.5 + u * 0.2) * 0.25 + Math.cos(elapsedTime * 1.2 + v * 0.2) * 0.25;
+                    pos.setZ(i, z);
+                }
+                waterMesh.geometry.computeVertexNormals();
+                waterMesh.geometry.attributes.position.needsUpdate = true;
+            }
+
+            if (cloudsGroup) {
+                cloudsGroup.rotation.y = elapsedTime * 0.02;
+            }
+
+            islands.forEach(group => {
+                const off = group.userData.floatOffset;
+                group.position.y = group.userData.baseY + Math.sin(elapsedTime * 1.2 + off) * 0.25;
+
+                group.userData.currentScale += (group.userData.targetScale - group.userData.currentScale) * 0.1;
+                group.scale.setScalar(group.userData.currentScale);
+
+                if (group.userData.labelEl) {
+                    const worldPos = group.position.clone();
+                    worldPos.y += group.userData.radius * 0.35 + 3.8;
+
+                    const camSpacePos = worldPos.clone().applyMatrix4(camera.matrixWorldInverse);
+                    const labelEl = group.userData.labelEl;
+
+                    if (camSpacePos.z < 0) {
+                        const ndc = worldPos.clone().project(camera);
+
+                        if (ndc.x >= -1.1 && ndc.x <= 1.1 && ndc.y >= -1.1 && ndc.y <= 1.1) {
+                            const x = (ndc.x * 0.5 + 0.5) * window.innerWidth;
+                            const y = (-(ndc.y * 0.5) + 0.5) * window.innerHeight;
+
+                            labelEl.style.display = 'flex';
+                            labelEl.style.left = `${x}px`;
+                            labelEl.style.top = `${y}px`;
+                            labelEl.style.opacity = '1';
+                        } else {
+                            labelEl.style.display = 'none';
+                        }
+                    } else {
+                        labelEl.style.display = 'none';
+                    }
+                }
+            });
+
+            characters.forEach(char => char.update(elapsedTime));
+
+            renderer.render(scene, camera);
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>
