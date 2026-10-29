@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>高雄市茄萣區茄萣國民小學 - 3D動態島嶼校園導覽V3</title>
+    <title>高雄市茄萣區茄萣國民小學 - 3D動態島嶼校園導覽V3.1</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Three.js CDN -->
@@ -110,7 +110,7 @@
     <h1 class="flex flex-col items-start space-y-1">
         <!-- 主標題：茄萣國小探索島嶼 -->
         <span class="text-sm md:text-xl font-black text-slate-800 tracking-wide whitespace-nowrap">
-            茄萣國小探索島嶼V3
+            茄萣國小探索島嶼V3.1
         </span>
         
         <!-- 副標題：獨立的橘色圓角矩形徽章 -->
@@ -283,7 +283,7 @@
                 id: 'guard',
                 name: '警衛室',
                 desc: '警衛門哨，主要功能為負責管理大門車輛通行管制、人員出入登記與校內安全警戒維護。',
-                radius: 5.0,
+                radius: 7.5,
                 colorTop: 0x90A4AE,
                 facilities: {
                     '主要功能': ['管理大門車輛通行', '校園安全警戒與門禁管制']
@@ -1355,6 +1355,253 @@
             group.add(pg);
         }
 
+
+        // --- 一般斜屋頂 (雙斜面山形屋頂，非太陽能；可指定顏色) ---
+        function addGableRoof(group, width, depth, baseY, color, rise) {
+            const D = depth + 0.4, W = width + 0.3, H = rise || Math.max(0.8, D * 0.32);
+            const mat = new THREE.MeshStandardMaterial({ color: color, roughness: 0.75, metalness: 0.05 });
+            const lineMat = new THREE.MeshStandardMaterial({ color: new THREE.Color(color).multiplyScalar(0.72), roughness: 0.8 });
+            const rg = new THREE.Group(); rg.rotation.y = -Math.PI / 2; rg.position.set(0, baseY, 0); group.add(rg);
+            const shape = new THREE.Shape();
+            shape.moveTo(-D / 2, 0); shape.lineTo(D / 2, 0); shape.lineTo(0, H); shape.closePath();
+            const geo = new THREE.ExtrudeGeometry(shape, { depth: W, bevelEnabled: false });
+            geo.translate(0, 0, -W / 2);
+            const body = new THREE.Mesh(geo, mat); body.castShadow = true; body.receiveShadow = true; rg.add(body);
+            const ang = Math.atan2(H, D / 2), sl = Math.hypot(D / 2, H);
+            [-1, 1].forEach(sd => {
+                const n = Math.max(3, Math.floor(sl / 0.5));
+                for (let k = 1; k < n; k++) {      // 瓦片橫紋
+                    const t = k / n;
+                    const ln = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.03, W + 0.02), lineMat);
+                    ln.position.set(sd * (D / 2) * (1 - t), H * t + 0.02, 0);
+                    ln.rotation.z = -sd * ang; rg.add(ln);
+                }
+            });
+            const ridge = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.12, W + 0.06), lineMat);
+            ridge.position.set(0, H + 0.02, 0); ridge.castShadow = true; rg.add(ridge);
+        }
+
+        // --- 區域內漫步的人物 / 卡通角色 (限定在指定範圍內移動) ---
+        let zoneWalkers = [];
+        class ZoneWalker {
+            constructor(parts, isValid, bounds, speed, startPt) {
+                this.group = parts.group; this.inner = parts.inner || parts.group; this.limbs = parts.limbs;
+                this.isValid = isValid; this.bounds = bounds; this.speed = speed;
+                this.cycle = Math.random() * 10; this.idle = Math.random() * 1.5; this.target = null;
+                this.group.position.x = startPt[0]; this.group.position.z = startPt[1];
+                this.group.rotation.y = Math.random() * 6.28;
+            }
+            segOK(x0, z0, x1, z1) {
+                for (let i = 1; i <= 8; i++) { const t = i / 8; if (!this.isValid(x0 + (x1 - x0) * t, z0 + (z1 - z0) * t)) return false; }
+                return true;
+            }
+            pickTarget() {
+                const b = this.bounds, p = this.group.position;
+                for (let k = 0; k < 30; k++) {
+                    const x = b.x0 + Math.random() * (b.x1 - b.x0), z = b.z0 + Math.random() * (b.z1 - b.z0);
+                    if (this.isValid(x, z) && Math.hypot(x - p.x, z - p.z) > 1.2 && this.segOK(p.x, p.z, x, z)) { this.target = [x, z]; return; }
+                }
+                this.target = null; this.idle = 1.0;
+            }
+            update(dt) {
+                const L = this.limbs, p = this.group.position;
+                if (this.idle > 0) {
+                    this.idle -= dt;
+                    L.ll.rotation.x *= 0.85; L.rl.rotation.x *= 0.85; L.la.rotation.x *= 0.85; L.ra.rotation.x *= 0.85;
+                    this.inner.position.y *= 0.8;
+                    if (this.idle <= 0) this.pickTarget();
+                    return;
+                }
+                if (!this.target) { this.pickTarget(); return; }
+                const dx = this.target[0] - p.x, dz = this.target[1] - p.z, d = Math.hypot(dx, dz);
+                if (d < 0.15) { this.target = null; this.idle = 0.6 + Math.random() * 2.2; return; }
+                const step = Math.min(d, this.speed * dt), nx = p.x + dx / d * step, nz = p.z + dz / d * step;
+                if (!this.isValid(nx, nz)) { this.target = null; this.idle = 0.3; return; }
+                p.x = nx; p.z = nz;
+                if (this.trail) { const l = this.trail[this.trail.length - 1]; if (Math.hypot(p.x - l[0], p.z - l[1]) > 0.08) { this.trail.push([p.x, p.z]); if (this.trail.length > 300) this.trail.shift(); } }
+                const want = Math.atan2(dx, dz); let df = want - this.group.rotation.y;
+                df = Math.atan2(Math.sin(df), Math.cos(df)); this.group.rotation.y += df * Math.min(1, dt * 8);
+                this.cycle += dt * this.speed * 6.5;
+                const sw = Math.sin(this.cycle) * 0.65;
+                L.ll.rotation.x = sw; L.rl.rotation.x = -sw; L.la.rotation.x = -sw * 0.8; L.ra.rotation.x = sw * 0.8;
+                this.inner.position.y = Math.abs(Math.sin(this.cycle)) * 0.05;
+            }
+        }
+
+
+        // 跟隨者：沿著領頭者走過的路徑，以固定距離排成一列跟在後面
+        class TrailFollower {
+            constructor(parts, head, off) {
+                this.group = parts.group; this.inner = parts.inner; this.limbs = parts.limbs; this.head = head; this.off = off; this.cycle = Math.random() * 10;
+                const q = this.pointAt(off); this.group.position.x = q[0]; this.group.position.z = q[1]; this.group.rotation.y = head.group.rotation.y;
+            }
+            pointAt(d) {
+                const tr = this.head.trail, hp = this.head.group.position; let rem = d, prev = [hp.x, hp.z];
+                for (let i = tr.length - 1; i >= 0; i--) {
+                    const p = tr[i], sl = Math.hypot(prev[0] - p[0], prev[1] - p[1]);
+                    if (sl > 1e-6 && sl >= rem) { const t = rem / sl; return [prev[0] + (p[0] - prev[0]) * t, prev[1] + (p[1] - prev[1]) * t]; }
+                    rem -= sl; prev = p;
+                }
+                return prev;
+            }
+            update(dt) {
+                const g = this.group, L = this.limbs, q = this.pointAt(this.off), a = this.pointAt(Math.max(0, this.off - 0.3));
+                const moved = Math.hypot(q[0] - g.position.x, q[1] - g.position.z);
+                g.position.x = q[0]; g.position.z = q[1];
+                if (moved > 0.003) {
+                    const hx = a[0] - q[0], hz = a[1] - q[1];
+                    if (Math.hypot(hx, hz) > 0.02) { let df = Math.atan2(hx, hz) - g.rotation.y; df = Math.atan2(Math.sin(df), Math.cos(df)); g.rotation.y += df * Math.min(1, dt * 8); }
+                    this.cycle += moved * 8.5;
+                    const sw = Math.sin(this.cycle) * 0.65;
+                    L.ll.rotation.x = sw; L.rl.rotation.x = -sw; L.la.rotation.x = -sw * 0.8; L.ra.rotation.x = sw * 0.8;
+                    this.inner.position.y = Math.abs(Math.sin(this.cycle)) * 0.05;
+                } else {
+                    L.ll.rotation.x *= 0.85; L.rl.rotation.x *= 0.85; L.la.rotation.x *= 0.85; L.ra.rotation.x *= 0.85; this.inner.position.y *= 0.8;
+                }
+            }
+        }
+
+        // --- 警衛室屋頂電視牆 (跑馬燈字幕) ---
+        let tvScreens = [];
+        function createRoofTV(text, w, h) {
+            const g = new THREE.Group();
+            const CW = 2048, CH = 256, c = document.createElement('canvas'); c.width = CW; c.height = CH;
+            const ctx = c.getContext('2d');
+            const draw = () => {
+                const grd = ctx.createLinearGradient(0, 0, 0, CH); grd.addColorStop(0, '#06122B'); grd.addColorStop(1, '#0B2250');
+                ctx.fillStyle = grd; ctx.fillRect(0, 0, CW, CH);
+                ctx.font = `900 170px 'Noto Sans TC','Microsoft JhengHei',sans-serif`; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+                ctx.shadowColor = '#FFEB3B'; ctx.shadowBlur = 24; ctx.fillStyle = '#FFE24A'; ctx.fillText(text, 30, CH / 2 + 8);
+                ctx.shadowBlur = 0;
+            };
+            draw();
+            const tex = new THREE.CanvasTexture(c); tex.wrapS = THREE.RepeatWrapping; tex.repeat.set((CH * w / h) / CW, 1);
+            if (document.fonts && document.fonts.load) document.fonts.load("900 40px 'Noto Sans TC'", text).then(() => { draw(); tex.needsUpdate = true; }).catch(() => {});
+            const frameM = new THREE.MeshStandardMaterial({ color: 0x1A1A1E, roughness: 0.4, metalness: 0.5 });
+            const fr = new THREE.Mesh(new THREE.BoxGeometry(w + 0.25, h + 0.25, 0.22), frameM); fr.castShadow = true; g.add(fr);
+            const scr = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({ map: tex, toneMapped: false }));
+            scr.position.z = 0.12; g.add(scr);
+            [-1, 1].forEach(sx => { const leg = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.5, 0.16), frameM); leg.position.set(sx * (w / 2 - 0.4), -h / 2 - 0.2, -0.05); leg.castShadow = true; g.add(leg); });
+            tvScreens.push(tex);
+            return g;
+        }
+
+        // --- 孔子雕像 ---
+        function createConfuciusStatue() {
+            const g = new THREE.Group();
+            const stone = new THREE.MeshStandardMaterial({ color: 0xC9C3B6, roughness: 0.85 }), stone2 = new THREE.MeshStandardMaterial({ color: 0xA9A294, roughness: 0.9 });
+            const bronze = new THREE.MeshStandardMaterial({ color: 0x8C6B3E, roughness: 0.45, metalness: 0.55 }), dark = new THREE.MeshStandardMaterial({ color: 0x4A3820, roughness: 0.5, metalness: 0.4 });
+            const S = (geo, m, x, y, z, p) => { const o = new THREE.Mesh(geo, m); o.position.set(x, y, z); o.castShadow = true; o.receiveShadow = true; (p || g).add(o); return o; };
+            S(new THREE.BoxGeometry(2.0, 0.25, 2.0), stone2, 0, 0.125, 0);
+            S(new THREE.BoxGeometry(1.6, 0.2, 1.6), stone, 0, 0.35, 0);
+            S(new THREE.BoxGeometry(1.2, 0.7, 1.2), stone, 0, 0.8, 0);
+            S(new THREE.BoxGeometry(1.4, 0.12, 1.4), stone2, 0, 1.21, 0);
+            const sign = createTextSign('孔子', 0.9, 0.42, '#3E2A14', '#F5D98B'); sign.position.set(0, 0.8, 0.62); g.add(sign);
+            const f = new THREE.Group(); f.position.y = 1.27; g.add(f);
+            S(new THREE.CylinderGeometry(0.3, 0.55, 1.5, 20), bronze, 0, 0.75, 0, f);                          // 長袍
+            S(new THREE.CylinderGeometry(0.57, 0.57, 0.07, 20), dark, 0, 0.04, 0, f);                          // 衣襬
+            const sh = S(new THREE.SphereGeometry(0.34, 18, 12), bronze, 0, 1.45, 0, f); sh.scale.set(1.15, 0.6, 0.8);
+            S(new THREE.CylinderGeometry(0.27, 0.3, 0.12, 18), dark, 0, 1.2, 0, f);                            // 腰帶
+            S(new THREE.SphereGeometry(0.17, 16, 12), bronze, 0, 1.75, 0, f);                                  // 頭
+            S(new THREE.BoxGeometry(0.46, 0.04, 0.34), dark, 0, 1.93, 0, f);                                   // 冠冕
+            S(new THREE.CylinderGeometry(0.15, 0.17, 0.1, 14), dark, 0, 1.88, 0, f);
+            const beard = S(new THREE.ConeGeometry(0.12, 0.6, 12), dark, 0, 1.45, 0.14, f); beard.rotation.x = Math.PI;   // 長鬍鬚
+            const mu = S(new THREE.TorusGeometry(0.07, 0.015, 6, 12, Math.PI), dark, 0, 1.71, 0.16, f); mu.rotation.z = Math.PI;
+            const arm = (sx) => {   // 兩袖向前於胸前拱手
+                const a = new THREE.Vector3(sx * 0.36, 1.45, 0), b = new THREE.Vector3(sx * 0.05, 1.22, 0.42), d = b.clone().sub(a), L = d.length();
+                const m = S(new THREE.CylinderGeometry(0.1, 0.15, L, 12), bronze, 0, 0, 0, f);
+                m.position.copy(a.clone().add(b).multiplyScalar(0.5)); m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.clone().normalize().negate());
+            };
+            arm(-1); arm(1);
+            S(new THREE.SphereGeometry(0.1, 12, 10), bronze, 0, 1.2, 0.44, f);                                 // 拱手
+            return g;
+        }
+
+        // 通用小人 (可指定衣服 / 褲子 / 帽子顏色)
+        function createPersonParts(shirtC, pantsC, hatC) {
+            const M = (c, r = 0.55) => new THREE.MeshStandardMaterial({ color: c, roughness: r });
+            const shirt = M(shirtC), pants = M(pantsC, 0.7), hat = M(hatC, 0.6), skin = M(0xF5C6A5, 0.5), shoe = M(0xFAFAFA);
+            const S = (geo, m) => { const o = new THREE.Mesh(geo, m); o.castShadow = true; return o; };
+            const group = new THREE.Group(), inner = new THREE.Group(); group.add(inner);
+            const body = S(new THREE.CylinderGeometry(0.17, 0.2, 0.5, 14), shirt); body.position.y = 0.67; inner.add(body);
+            const head = new THREE.Group(); head.position.y = 1.08; inner.add(head);
+            head.add(S(new THREE.SphereGeometry(0.2, 18, 14), skin));
+            const dome = S(new THREE.SphereGeometry(0.225, 18, 12, 0, Math.PI * 2, 0, Math.PI / 2), hat); dome.position.y = 0.03; dome.rotation.x = -0.12; head.add(dome);
+            const brim = S(new THREE.BoxGeometry(0.34, 0.025, 0.17), hat); brim.position.set(0, 0.06, 0.2); head.add(brim);
+            const eyeMat = new THREE.MeshBasicMaterial({ color: 0x222222 });
+            [-0.07, 0.07].forEach(ex => { const e = new THREE.Mesh(new THREE.SphereGeometry(0.024, 8, 8), eyeMat); e.position.set(ex, -0.02, 0.18); head.add(e); });
+            const limb = (len, rad, mat, px, py, endMat, endRad) => {
+                const pv = new THREE.Group(); pv.position.set(px, py, 0);
+                const sg = S(new THREE.CylinderGeometry(rad, rad * 0.9, len, 10), mat); sg.position.y = -len / 2; pv.add(sg);
+                const en = S(new THREE.SphereGeometry(endRad, 10, 8), endMat); en.position.y = -len;
+                if (endMat === shoe) { en.scale.set(1, 0.7, 1.5); en.position.z = 0.04; }
+                pv.add(en); inner.add(pv); return pv;
+            };
+            const limbs = { ll: limb(0.4, 0.07, pants, -0.09, 0.42, shoe, 0.085), rl: limb(0.4, 0.07, pants, 0.09, 0.42, shoe, 0.085),
+                            la: limb(0.34, 0.05, shirt, -0.25, 0.86, skin, 0.055), ra: limb(0.34, 0.05, shirt, 0.25, 0.86, skin, 0.055) };
+            group.scale.setScalar(1.12);
+            return { group, inner, limbs };
+        }
+
+        // 卡通角色：panda 熊貓 / rabbit 兔子 / mickey 米老鼠
+        function createToonParts(kind) {
+            const M = (c, r = 0.6) => new THREE.MeshStandardMaterial({ color: c, roughness: r });
+            const white = M(0xFFFFFF, 0.65), black = M(0x161616, 0.6), pink = M(0xF8B4C4, 0.6), skin = M(0xFFDDB5, 0.55), red = M(0xD32F2F, 0.55), yellow = M(0xFDD835, 0.5), glove = M(0xFFFFFF, 0.5);
+            const S = (geo, m, x, y, z, parent) => { const o = new THREE.Mesh(geo, m); o.position.set(x || 0, y || 0, z || 0); o.castShadow = true; if (parent) parent.add(o); return o; };
+            const Sp = (r, ws = 18, hs = 14) => new THREE.SphereGeometry(r, ws, hs);
+            const group = new THREE.Group(), inner = new THREE.Group(); group.add(inner);
+            const bodyMat = kind === 'mickey' ? black : white;
+            const limbMat = kind === 'panda' ? black : kind === 'mickey' ? black : white;
+            const footMat = kind === 'panda' ? black : kind === 'mickey' ? yellow : pink;
+            const handMat = kind === 'mickey' ? glove : limbMat;
+            const body = S(Sp(0.27), bodyMat, 0, 0.52, 0, inner); body.scale.set(1, 1.1, 0.9);
+            if (kind === 'panda') { const belly = S(Sp(0.22), white, 0, 0.5, 0.06, inner); belly.scale.set(1, 1.05, 0.8); }
+            if (kind === 'rabbit') { const belly = S(Sp(0.2), M(0xFFE4EC, 0.7), 0, 0.5, 0.1, inner); belly.scale.set(1, 1.0, 0.7); S(Sp(0.1), white, 0, 0.36, -0.27, inner); }   // 肚子 + 尾巴
+            if (kind === 'mickey') { const shorts = S(new THREE.CylinderGeometry(0.255, 0.285, 0.2, 18), red, 0, 0.37, 0, inner); [-0.09, 0.09].forEach(bx => S(Sp(0.032, 8, 8), yellow, bx, 0.4, 0.26, inner)); }
+            const head = new THREE.Group(); head.position.y = 1.0; inner.add(head);
+            const hm = kind === 'mickey' ? black : white;
+            S(Sp(0.27), hm, 0, 0, 0, head);
+            const eyeBlack = new THREE.MeshBasicMaterial({ color: 0x111111 }), eyeWhite = new THREE.MeshBasicMaterial({ color: 0xFFFFFF });
+            if (kind === 'panda') {
+                [-1, 1].forEach(sx => {
+                    S(Sp(0.1), black, sx * 0.21, 0.22, -0.02, head);                              // 耳朵
+                    const patch = S(Sp(0.075), black, sx * 0.1, 0.03, 0.2, head); patch.scale.set(1, 1.35, 0.55); patch.rotation.z = sx * 0.4;   // 黑眼圈
+                    S(Sp(0.022, 8, 8), eyeWhite, sx * 0.1, 0.045, 0.245, head);
+                });
+                S(Sp(0.05, 10, 8), black, 0, -0.05, 0.255, head).scale.set(1.3, 0.9, 0.8);       // 鼻子
+            } else if (kind === 'rabbit') {
+                [-1, 1].forEach(sx => {
+                    const ear = new THREE.Group(); ear.position.set(sx * 0.1, 0.24, -0.02); ear.rotation.z = -sx * 0.14; head.add(ear);
+                    S(new THREE.CylinderGeometry(0.06, 0.055, 0.42, 10), white, 0, 0.21, 0, ear);
+                    S(Sp(0.06, 10, 8), white, 0, 0.42, 0, ear);
+                    const inn = S(new THREE.CylinderGeometry(0.032, 0.03, 0.34, 8), pink, 0, 0.21, 0.035, ear);
+                    S(Sp(0.034, 8, 8), black, sx * 0.1, 0.03, 0.245, head);                      // 眼睛
+                    S(Sp(0.05, 8, 8), pink, sx * 0.14, -0.06, 0.2, head).scale.set(1, 0.8, 0.5);  // 腮紅
+                });
+                S(Sp(0.04, 10, 8), pink, 0, -0.03, 0.265, head);                                  // 鼻子
+            } else {   // mickey
+                [-1, 1].forEach(sx => { const ear = S(Sp(0.16), black, sx * 0.24, 0.26, 0, head); ear.scale.set(1, 1, 0.35); });
+                const face = S(Sp(0.2), skin, 0, -0.05, 0.1, head); face.scale.set(1, 0.9, 0.65);
+                [-1, 1].forEach(sx => {
+                    const ew = S(Sp(0.05, 10, 8), eyeWhite, sx * 0.065, 0.06, 0.225, head); ew.scale.set(0.85, 1.25, 0.5);
+                    S(Sp(0.022, 8, 8), eyeBlack, sx * 0.065, 0.06, 0.25, head);
+                });
+                S(Sp(0.05, 10, 8), black, 0, -0.01, 0.255, head);                                 // 鼻子
+                const sm = S(new THREE.TorusGeometry(0.06, 0.012, 6, 14, Math.PI), red, 0, -0.07, 0.235, head); sm.rotation.z = Math.PI;   // 微笑
+            }
+            const limb = (len, rad, mat, px, py, endMat, endRad, isFoot) => {
+                const pv = new THREE.Group(); pv.position.set(px, py, 0);
+                S(new THREE.CylinderGeometry(rad, rad * 0.92, len, 10), mat, 0, -len / 2, 0, pv);
+                const en = S(Sp(endRad, 10, 8), endMat, 0, -len, 0, pv);
+                if (isFoot) { en.scale.set(1, 0.65, 1.55); en.position.z = 0.05; }
+                inner.add(pv); return pv;
+            };
+            const limbs = { ll: limb(0.3, 0.075, limbMat, -0.11, 0.3, footMat, 0.1, true), rl: limb(0.3, 0.075, limbMat, 0.11, 0.3, footMat, 0.1, true),
+                            la: limb(0.28, 0.06, limbMat, -0.29, 0.7, handMat, 0.075, false), ra: limb(0.28, 0.06, limbMat, 0.29, 0.7, handMat, 0.075, false) };
+            group.scale.setScalar(1.0);
+            return { group, inner, limbs };
+        }
+
         // --- 太陽能光電平台屋頂 (球場用，微傾斜 + 支柱) ---
         function addSolarCanopy(g, cx, cz, w, d, topY, tilt) {
             const steel = new THREE.MeshStandardMaterial({ color: 0x78909C, roughness: 0.45, metalness: 0.5 });
@@ -1681,11 +1928,11 @@
                 win(10.4, y, -6.53, Math.PI); win(-10.4, y, -7.03, Math.PI); win(-10.4, y, 7.03, 0);
             });
 
-            // ---- 太陽能光電斜屋頂 ----
+            // ---- 灰黑色斜屋頂 (非太陽能) ----
             const baseY = roofTop + 0.2;
-            const roofL = new THREE.Group(); roofL.position.set(-10.4, 0, 0); roofL.rotation.y = Math.PI / 2; addSolarShedRoof(roofL, 14, 3.2, baseY); g.add(roofL);
-            const roofR = new THREE.Group(); roofR.position.set(10.4, 0, -2.15); roofR.rotation.y = -Math.PI / 2; addSolarShedRoof(roofR, 8.7, 3.2, baseY); g.add(roofR);
-            const roofH = new THREE.Group(); roofH.position.set(7.45, 0, 5.4); roofH.rotation.y = Math.PI; addSolarShedRoof(roofH, 9.1, 3.2, baseY); g.add(roofH);
+            const roofL = new THREE.Group(); roofL.position.set(-10.4, 0, 0); roofL.rotation.y = Math.PI / 2; addGableRoof(roofL, 14, 3.2, baseY, 0x3A3D41); g.add(roofL);
+            const roofR = new THREE.Group(); roofR.position.set(10.4, 0, -2.15); roofR.rotation.y = -Math.PI / 2; addGableRoof(roofR, 8.7, 3.2, baseY, 0x3A3D41); g.add(roofR);
+            const roofH = new THREE.Group(); roofH.position.set(7.45, 0, 5.4); roofH.rotation.y = Math.PI; addGableRoof(roofH, 9.1, 3.2, baseY, 0x3A3D41); g.add(roofH);
 
             // ---- 1-3 樓樓梯 (左棟中間、右棟南端) 與 1-3 樓旋轉樓梯 (右棟北端) ----
             const twL = createStairTower(); twL.position.set(-10.8, 0, 0); twL.rotation.y = Math.PI; g.add(twL);
@@ -2065,6 +2312,10 @@
                 const rg = new THREE.Group(); rg.position.set(sr.cx, 0, sr.cz); rg.rotation.y = Math.atan2(sr.dir[0], sr.dir[1]);
                 addSolarShedRoof(rg, sr.len, sr.depth, H + 0.3); g.add(rg);
             });
+            (spec.slopeRoofs || []).forEach(sr => {      // 一般灰色斜屋頂 (非太陽能)
+                const rg = new THREE.Group(); rg.position.set(sr.cx, 0, sr.cz); rg.rotation.y = Math.atan2(sr.dir[0], sr.dir[1]);
+                addGableRoof(rg, sr.len, sr.depth, H + 0.3, sr.color); g.add(rg);
+            });
             return g;
         }
 
@@ -2080,7 +2331,11 @@
                 floors: 2,
                 rooms: [R(695, 87, 793, 187, { door: [-1, 0] }), R(695, 255, 793, 355, { door: [-1, 0] }), R(695, 355, 793, 455, { door: [-1, 0] }), R(695, 455, 793, 555, { door: [-1, 0] }), R(441, 605, 695, 705, { door: [0, -1] })],
                 stairs: [R(695, 187, 793, 255, { open: [-1, 0] }), R(695, 605, 793, 705, { open: [0, -1] })],
-                corridors: [R(647, 87, 695, 555), R(441, 555, 793, 605)]
+                corridors: [R(647, 87, 695, 555), R(441, 555, 793, 605)],
+                slopeRoofs: [
+                    { cx: HY.P(744, 321)[0], cz: HY.P(744, 321)[1], len: 468 * HY.K, depth: 98 * HY.K, dir: [1, 0], color: 0x9AA0A6 },     // 右側縱向棟
+                    { cx: HY.P(617, 655)[0], cz: HY.P(617, 655)[1], len: 352 * HY.K, depth: 100 * HY.K, dir: [0, -1], color: 0x9AA0A6 }    // 下方橫向棟
+                ]
             });
         }
 
@@ -2109,7 +2364,8 @@
                 floors: 3, rooms,
                 stairs: [{ x0: x0 + 4 * rw, x1: 6.87, z0: -2.5, z1: 1.5, open: [0, -1] }],
                 corridors: [{ x0: -6.87, x1: 6.87, z0: -3.9, z1: -2.5 }],
-                links: [{ x0: -1.2, x1: 1.2, z0: -9.5, z1: -3.9 }]
+                links: [{ x0: -1.2, x1: 1.2, z0: -9.5, z1: -3.9 }],
+                solarRoofs: [{ cx: 0, cz: -0.5, len: 13.74, depth: 4.0, dir: [0, -1] }]   // 太陽能光電斜屋頂 (前低後高)
             });
         }
 
@@ -2191,6 +2447,14 @@
                 core.add(complex);
                 addBubblePlaza(core, 0, -2.4, 14.4, 9.2);
 
+                // 泡泡廣場上的藍衣藍褲藍帽人物 (在廣場範圍內緩慢走動)
+                {
+                    const bp = createPersonParts(0x1E5FD8, 0x12349A, 0x1565C0);
+                    bp.group.position.y = 0.78; core.add(bp.group);
+                    const plazaValid = (px, pz) => px > -5.6 && px < 5.6 && pz > -6.2 && pz < 1.5;
+                    zoneWalkers.push(new ZoneWalker(bp, plazaValid, { x0: -5.6, x1: 5.6, z0: -6.2, z1: 1.5 }, 0.8, [-2.0, -3.0]));
+                }
+
                 // 正門：位於 1-3 樓連通走道前方 (朝向警衛室 +Z)，走道 1 樓為穿堂式大門
                 const gate = new THREE.Group(); gate.position.set(0, 0.75, 4.4);
                 const canopy = new THREE.Mesh(new THREE.BoxGeometry(5.2, 0.18, 1.7), new THREE.MeshStandardMaterial({ color: 0x1565C0, roughness: 0.5 }));
@@ -2216,6 +2480,12 @@
                 group.add(poolGazebo);
                 addDisc(group, 17.5, 13.7, 2.0);
                 addRoad(group, 13.9, 11.3, 16.0, 12.7, 1.1);
+
+                // 孔子雕像：位於鯉魚水池與靠近幼兒園的涼亭之間
+                const confucius = createConfuciusStatue();
+                confucius.position.set(8.7, 0.75, 12.9); confucius.scale.setScalar(0.95); confucius.rotation.y = Math.atan2(-8.7, -12.9) + 40 * Math.PI / 180;   // 逆時針旋轉 40 度
+                group.add(confucius);
+                addDisc(group, 8.7, 12.9, 1.8);
 
                 // 新增涼亭：位於主島內「通往視聽教室」與「通往網球場」兩條道路之間
                 const midGazebo = createGazebo();
@@ -2290,11 +2560,36 @@
             } else if (data.id === 'kindergarten') {
                 // 依「幼兒園」圖：一字型 4 間教室 + 東端樓梯，前方走廊中央接屋頂式裸空連通走道
                 const kg = new THREE.Group(); kg.position.set(0, 0.75, 0); kg.rotation.y = angleToMain;   // 局部 +z 朝向橋梁
-                const kb = createKindergartenBuilding(); kb.rotation.y = Math.PI; kg.add(kb);
-                addCoveredWalkway(kg, 0, 4.0, r * 0.85, 2.4);
-                [-1, 1].forEach(sx => addRailing(kg, sx * 1.1, 4.0, sx * 1.1, r * 0.85, 0.06));   // 走道兩側欄杆 (無圍牆)
+                const kb = createKindergartenBuilding(); kb.rotation.y = Math.PI; kb.position.z = -4.0; kg.add(kb);   // 建築物往島嶼後方移動，前方腹地更寬廣
+                addCoveredWalkway(kg, 0, 0.0, r * 0.85, 2.4);
+                [-1, 1].forEach(sx => addRailing(kg, sx * 1.1, 0.0, sx * 1.1, r * 0.85, 0.06));   // 走道兩側欄杆 (無圍牆)
                 const pa = createPlayArea(); pa.scale.setScalar(0.75); pa.rotation.y = -Math.PI / 2; pa.position.set(5.0, 0, 5.8);   // 遊樂器材區：位置/大小/方向維持不變
                 kg.add(pa);
+
+                // 幼兒園角色：熊貓 / 兔子 / 米老鼠各帶領 3 位小孩排隊走動 (前導 + 3 位小孩 + 殿後)，只在幼兒園建築前方草地範圍內移動
+                const kgValid = (px, pz) => pz >= 1.3 && px * px + pz * pz <= 8.0 * 8.0 && Math.abs(px) >= 1.9 && !(px > 2.0 && px < 8.0 && pz > 3.6 && pz < 8.0);
+                const kidPal = [[0xEF5350, 0x3949AB, 0xFFCA28], [0x66BB6A, 0x37474F, 0xEF5350], [0xFFA726, 0x5D4037, 0x42A5F5], [0xAB47BC, 0x3F51B5, 0xFFEE58], [0x26C6DA, 0x00695C, 0xEC407A], [0xFFEE58, 0x1565C0, 0x66BB6A], [0xEC407A, 0x455A64, 0xFFCA28], [0x42A5F5, 0x6D4C41, 0xFF7043], [0x9CCC65, 0x283593, 0xAB47BC]];
+                let kidIdx = 0;
+                const mkTrain = (kinds, side) => {
+                    const bnd = side < 0 ? { x0: -7.8, x1: -1.9, z0: 1.3, z1: 7.8 } : { x0: 1.9, x1: 7.8, z0: 1.3, z1: 7.8 };
+                    let st = [side * 3.5, 2.2], ang = side < 0 ? 0 : 0, found = false;
+                    for (let seedLen = 70; seedLen >= 20 && !found; seedLen -= 25) for (let k = 0; k < 300 && !found; k++) {
+                        const sx = bnd.x0 + Math.random() * (bnd.x1 - bnd.x0), sz = bnd.z0 + Math.random() * (bnd.z1 - bnd.z0), a = Math.random() * Math.PI * 2;
+                        let ok = kgValid(sx, sz);
+                        for (let q = 1; ok && q <= seedLen; q++) ok = kgValid(sx - Math.sin(a) * 0.1 * q, sz - Math.cos(a) * 0.1 * q);
+                        if (ok) { st = [sx, sz]; ang = a; found = true; }
+                    }
+                    const members = kinds.map(kd => { if (kd !== 'kid') return createToonParts(kd); const c = kidPal[kidIdx++ % kidPal.length], p = createPersonParts(c[0], c[1], c[2]); p.group.scale.setScalar(0.8); return p; });
+                    members.forEach(m => kg.add(m.group));
+                    const head = new ZoneWalker(members[0], kgValid, bnd, 0.6 + Math.random() * 0.1, st);
+                    head.group.rotation.y = ang; head.idle = 0.5;
+                    head.trail = []; for (let q = 70; q >= 0; q--) head.trail.push([st[0] - Math.sin(ang) * 0.1 * q, st[1] - Math.cos(ang) * 0.1 * q]);
+                    zoneWalkers.push(head);
+                    for (let m = 1; m < members.length; m++) zoneWalkers.push(new TrailFollower(members[m], head, m * 0.85));
+                };
+                mkTrain(['panda', 'panda', 'kid', 'kid', 'kid', 'panda'], -1);   // 2 隻熊貓在前帶領，1 隻熊貓殿後
+                mkTrain(['rabbit', 'kid', 'kid', 'kid', 'rabbit'], 1);           // 1 隻兔子帶領，1 隻兔子殿後
+                mkTrain(['mickey', 'kid', 'kid', 'kid', 'mickey'], -1);          // 1 隻米老鼠帶領，1 隻米老鼠殿後
                 group.add(kg);
             } else {
                 const floors = data.floors || 1;
@@ -2302,7 +2597,12 @@
                 const bDepth = Math.min(r * 0.8, 4.6);
                 const building = createMultiStoryBuilding(floors, bWidth, bDepth, 0xF5F5F5, 0x1976D2, true, false, null);
                 building.position.y = 0.75;
-                building.rotation.y = angleToMain;
+                if (data.id === 'guard') building.position.x = -3.5;   // 警衛室建築物向左移動，讓前門口空地連接橋梁
+                building.rotation.y = angleToMain - (data.id === 'guard' ? Math.PI / 2 : 0);   // 警衛室順時針旋轉 90 度
+                if (data.id === 'guard') {   // 警衛室屋頂電視牆：播放「歡迎光臨茄萣國小!」跑馬燈字幕
+                    const tv = createRoofTV('歡迎光臨茄萣國小!', 5.0, 1.6);
+                    tv.position.set(0, (floors * 1.8 + 0.5) + 0.5 + 0.8, 0.2); building.add(tv);
+                }
                 group.add(building);
             }
 
@@ -2314,10 +2614,11 @@
                 const axis = Math.atan2(-z, -x);
                 const dA = (a, b) => Math.abs(Math.atan2(Math.sin(a - b), Math.cos(a - b)));
                 const numTrees = Math.floor(Math.random() * 2) + 3;
+                const kgTreeClash = (a, rd) => { const px = Math.cos(a) * rd, pz = Math.sin(a) * rd, c = Math.cos(angleToMain), sn = Math.sin(angleToMain); const xl = px * c - pz * sn, zl = px * sn + pz * c; return xl > -8.9 && xl < 8.9 && zl > -7.4 && zl < 1.2; };
                 for (let i = 0; i < numTrees; i++) {
                     let angle, tries = 0;
                     do { angle = Math.random() * Math.PI * 2; tries++; }
-                    while (tries < 40 && (dA(angle - (data.rotY || 0), axis) < (data.id === 'kindergarten' ? 1.4 : 0.7) || (data.isTennis && Math.abs(Math.sin(angle)) < 0.6) || (data.isPlayground && dA(angle, 1.95) < 0.55) || (data.id === 'haiyun' && dA(angle, Math.atan2(HY.L(672, 48)[1], HY.L(672, 48)[0])) < 0.7) || (data.linkAngles && data.linkAngles.some(a => dA(angle - (data.rotY || 0), a) < 0.8)) || (data.isPlayground && Math.abs(Math.atan2(Math.sin(angle + Math.PI / 2), Math.cos(angle + Math.PI / 2))) < 0.7)));
+                    while (tries < 40 && (dA(angle - (data.rotY || 0), axis) < (data.id === 'kindergarten' ? 1.4 : 0.7) || (data.id === 'kindergarten' && kgTreeClash(angle, 9.1)) || (data.id === 'guard' && (() => { const gx = Math.cos(angle) * 6.2, gz = Math.sin(angle) * 6.2; return gx > -7.2 && gx < 0.3 && Math.abs(gz) < 4.6; })()) || (data.isTennis && Math.abs(Math.sin(angle)) < 0.6) || (data.isPlayground && dA(angle, 1.95) < 0.55) || (data.id === 'haiyun' && dA(angle, Math.atan2(HY.L(672, 48)[1], HY.L(672, 48)[0])) < 0.7) || (data.linkAngles && data.linkAngles.some(a => dA(angle - (data.rotY || 0), a) < 0.8)) || (data.isPlayground && Math.abs(Math.atan2(Math.sin(angle + Math.PI / 2), Math.cos(angle + Math.PI / 2))) < 0.7)));
                     const tree = createTree();
                     const rad = ((data.isPlayground ? 0.9 : data.id === 'haiyun' ? 0.95 : data.id === 'old_south' ? 0.95 : 0.8) + Math.random() * 0.05) * r;
                     tree.position.set(Math.cos(angle) * rad, 0.75, Math.sin(angle) * rad);
@@ -2373,7 +2674,7 @@
 
         // --- Build Campus Islands Layout + 步行路網 ---
         function buildCampusIslands() {
-            bridgesInfo = []; characters = []; islands = []; treeList = []; foamRings = [];
+            bridgesInfo = []; characters = []; zoneWalkers = []; tvScreens = []; islands = []; treeList = []; foamRings = [];
             const mkNode = (x, y, z, isl) => ({ p: new THREE.Vector3(x, y, z), isl, nb: [] });
             const link = (a, b, hw) => { a.nb.push({ to: b, halfW: hw }); b.nb.push({ to: a, halfW: hw }); };
 
@@ -2894,6 +3195,8 @@
 
             const dt = Math.min(elapsedTime - lastT, 0.05); lastT = elapsedTime;
             characters.forEach(char => char.update(dt));
+            zoneWalkers.forEach(w => w.update(dt));
+            tvScreens.forEach(t => { t.offset.x = (t.offset.x + dt * 0.05) % 1; });
             treeList.forEach(o => { const c = o.tree.userData.crown; if (c) { c.rotation.z = Math.sin(elapsedTime * 0.9 + o.phase) * 0.025; c.rotation.x = Math.cos(elapsedTime * 0.7 + o.phase) * 0.015; } });
             foamRings.forEach(f => { const s = 1 + Math.sin(elapsedTime * 1.4 + f.phase) * 0.035; f.m.scale.set(s, s, 1); f.m.material.opacity = 0.28 + Math.sin(elapsedTime * 1.4 + f.phase) * 0.1; });
             if (cloudsGroup) cloudsGroup.children.forEach(c => { c.position.y += Math.sin(elapsedTime * 0.4 + c.userData.phase) * 0.003; });
