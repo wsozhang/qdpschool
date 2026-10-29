@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>高雄市茄萣區茄萣國民小學 - 3D動態島嶼校園導覽</title>
+    <title>高雄市茄萣區茄萣國民小學 - 3D動態島嶼校園導覽V3</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Three.js CDN -->
@@ -110,7 +110,7 @@
     <h1 class="flex flex-col items-start space-y-1">
         <!-- 主標題：茄萣國小探索島嶼 -->
         <span class="text-sm md:text-xl font-black text-slate-800 tracking-wide whitespace-nowrap">
-            茄萣國小探索島嶼
+            茄萣國小探索島嶼V3
         </span>
         
         <!-- 副標題：獨立的橘色圓角矩形徽章 -->
@@ -121,12 +121,24 @@
 </div>
 
 
-        <!-- Instructions Guide Badge -->
-        <div class="glass-panel rounded-2xl px-4 py-2.5 pointer-events-auto shadow-lg hidden lg:flex items-center space-x-2 border border-white/70 shrink-0">
-            <span class="inline-block w-2.5 h-2.5 rounded-full bg-blue-500 animate-ping"></span>
-            <span class="text-xs md:text-sm font-bold text-slate-700">拖曳旋轉 3D 視角 • 點擊島嶼與標籤檢視介紹</span>
-        </div>
+        <div class="hidden lg:block w-40 shrink-0"></div>
     </header>
+
+    <!-- Floating Navigation Controls (top-right) -->
+    <div id="nav-panel" class="absolute right-4 top-24 z-30 flex flex-col items-end gap-2 pointer-events-none">
+        <div class="glass-panel rounded-2xl p-1.5 flex items-center gap-1 shadow-lg border border-white/70 pointer-events-auto">
+            <button id="nav-rotate" onclick="setNavMode('rotate')" class="nav-btn px-3 py-2 rounded-xl text-xs md:text-sm font-black transition-all flex items-center gap-1">🔄 <span>旋轉</span></button>
+            <button id="nav-pan" onclick="setNavMode('pan')" class="nav-btn px-3 py-2 rounded-xl text-xs md:text-sm font-black transition-all flex items-center gap-1">✋ <span>平移</span></button>
+        </div>
+        <div class="glass-panel rounded-2xl px-3 py-2 shadow-lg border border-white/70 pointer-events-auto max-w-[15rem] text-[11px] md:text-xs font-bold text-slate-700 leading-relaxed">
+            先選擇平移或旋轉功能後，再透過滑鼠右鍵操作，另外放大、縮小的功能也可以透過滑鼠中間滾輪來執行。<br>
+            <span class="text-blue-600">左鍵點擊島嶼或標籤可檢視介紹。</span>
+        </div>
+        <div class="glass-panel rounded-2xl p-1.5 flex items-center gap-1 shadow-lg border border-white/70 pointer-events-auto">
+            <button id="zoom-in" class="px-3 py-2 rounded-xl text-xs md:text-sm font-black text-slate-700 hover:bg-white/70 active:bg-blue-600 active:text-white transition-all flex items-center gap-1">➕ <span>放大</span></button>
+            <button id="zoom-out" class="px-3 py-2 rounded-xl text-xs md:text-sm font-black text-slate-700 hover:bg-white/70 active:bg-blue-600 active:text-white transition-all flex items-center gap-1">➖ <span>縮小</span></button>
+        </div>
+    </div>
 
     <!-- Bottom Left Widget: Mode Switcher -->
     <div class="absolute bottom-4 left-4 pointer-events-none z-20">
@@ -235,15 +247,21 @@
             '總務處': 'http://affairs.kh.edu.tw/2360',
             '輔導室': 'http://affairs.kh.edu.tw/3855',
             '幼兒園': 'http://class.kh.edu.tw/9943',
-            '幼兒園網頁': 'http://class.kh.edu.tw/9943'
+            '幼兒園網頁': 'http://class.kh.edu.tw/9943',
+            '電腦教室': 'https://sites.google.com/go.edu.tw/zhangclass/%E9%A6%96%E9%A0%81',
+            '低年級班級教室':'https://www.qdp.kh.edu.tw/view/index.php?WebID=6&MainType=0&SubType=103&MainMenuId=19505&SubMenuId=88196',
+            '中年級班級教室':'https://www.qdp.kh.edu.tw/view/index.php?WebID=6&MainType=0&SubType=103&MainMenuId=19505&SubMenuId=88196',
+            '高年級班級教室':'https://www.qdp.kh.edu.tw/view/index.php?WebID=6&MainType=0&SubType=103&MainMenuId=19505&SubMenuId=88196',
+            '樂齡教室':'https://affairs.kh.edu.tw/1416',
+            '數位學習機會中心教室':'https://itaiwan.moe.gov.tw/doc/index.php?doc=488'
         };
 
         // --- Campus Island Data Configuration ---
         const campusData = [
             {
                 id: 'main',
-                name: '賜福樓 (主島嶼)',
-                desc: '賜福樓為茄萣國小的校務行政與教學核心大樓，各島嶼的橋梁皆連接至主島邊緣，主島建築群與造景整體放大配置。建築設計分成北側與南側兩棟獨立的三層樓建築，屋頂皆為太陽能光電斜屋頂，兩棟之間隔著一座連鎖磚鋪面的泡泡廣場，靠近水池的一側設有二樓與三樓兩條跨棟連通走廊，正面大門朝向警衛室。大門前設有鯉魚造景噴水圓形水池，水池右側設有涼亭；大樓左右兩側各設有一座兒童遊樂器材區（溜滑梯、盪鞦韆、沙坑）。',
+                name: '賜福樓',
+                desc: '賜福樓為茄萣國小的校務行政與教學核心大樓，各島嶼的橋梁皆連接至主島邊緣。分成北側(右)與南側(左)，兩棟是三層樓教學區與行政辦公區。中間為泡泡廣場是學生下課活動場所與戶外升旗集會場所。前設有鯉魚造景噴水圓形水池。',
                 radius: 28,
                 colorTop: 0x8BC34A,
                 isMain: true,
@@ -257,7 +275,7 @@
                         '低年級班級教室', '高年級班級教室', '樂齡教室', '數位學習機會中心教室'
                     ],
                     '戶外設施': [
-                        '太陽能光電斜屋頂', '連鎖磚泡泡廣場', '2樓與3樓跨棟連通走廊 (靠水池側)', '鯉魚造景噴水水池', '水池旁涼亭', '兒童遊樂器材區 ×2 (溜滑梯、盪鞦韆、沙坑)'
+                        '泡泡廣場', '鯉魚造景噴水水池', '涼亭 ', '兒童遊樂器材區'
                     ]
                 }
             },
@@ -274,91 +292,107 @@
             {
                 id: 'guanghui',
                 name: '光輝館',
-                desc: '主要功能為學校大型集會、典禮活動、全校活動與表演展演場所。建築採挑高空間與斜屋頂設計。',
+                desc: '主要功能為學校大型集會、典禮活動、全校活動與表演展演場所(新生始業式、畢業典禮、國樂成果展、大型表演活動...等)。',
                 radius: 7.0,
                 colorTop: 0x90A4AE,
                 facilities: {
-                    '主要功能': ['大型集會活動場所', '全校典禮與綜合展演廳', '挑高斜屋頂']
+                    '主要功能': ['大型集會活動場所', '全校典禮與綜合展演廳(新生始業式、畢業典禮、國樂成果展、大型表演活動...等)']
                 }
             },
             {
                 id: 'old_south',
                 name: '舊南棟',
-                desc: '為兩層樓溫馨教學大樓，擁有低年級基礎教育與多功能藝能教室，屋頂為太陽能光電斜屋頂。',
-                radius: 6.5,
+                desc: '為兩層樓溫馨教學大樓，擁有低年級基礎教育與多功能自然、語言、音樂教室與體育器材室。',
+                radius: 10.5,
                 floors: 2,
                 colorTop: 0x9CCC65,
                 facilities: {
-                    '主要設施': ['低年級教室', '自然教室', '音樂教室', '語言教室', '學習成長中心', '太陽能光電斜屋頂']
+                    '主要設施': ['低年級班級教室', '自然教室', '音樂教室', '語言教室', '學習成長中心', '體育器材室']
                 }
             },
             {
                 id: 'playground',
                 name: '操場與光電球場',
-                desc: '操場範圍包含光電球場，跑道外下方設有一座休憩涼亭，位於操場內部左側約三分之一（橫向配置，紅土跑道環繞在外圍）。光電球場採斜屋頂造型並設有太陽能發電板，中間為兩座標準籃球場，上下兩旁各有一座半場籃球場，皆設有籃球框。操場右半部為足球場地，跑道後方設有司令台。紅土跑道是全台國小唯一一座紅土跑道的操場。',
+                desc: '操場範圍包含光電球場，跑道外下方設有一座休憩涼亭。光電球場採斜屋頂造型並設有太陽能發電板，中間為兩座標準籃球場，上下兩旁各有一座半場籃球場，皆設有籃球框。操場右半部為足球場地，跑道後方設有司令台。紅土跑道是全台國小唯一一座紅土跑道的操場。',
                 radius: 11,
                 isPlayground: true,
+                rotY: Math.PI / 3,   // 逆時針旋轉 60 度
                 colorTop: 0x66BB6A,
                 facilities: {
-                    '光電球場 (操場內部左側約1/3)': ['標準籃球場 ×2 (中間)', '半場籃球場 ×2 (上下兩旁)', '太陽能發電板斜屋頂'],
-                    '操場': ['全台國小唯一紅土跑道', '跑道外涼亭 (光電球場下方)', '足球場地 (操場右半部)', '司令台 (跑道後方)', '體育課與下課運動場所']
+                    '光電球場 (操場內部左側約1/3)': ['標準籃球場 ×2', '半場籃球場 ×2'],
+                    '操場': ['全台國小唯一紅土跑道', '涼亭', '足球場地', '司令台', '體育課與下課運動場所']
                 }
             },
             {
                 id: 'tennis',
                 name: '網球場與多功能球場',
-                desc: '由兩座具太陽能光電屋頂的球場組成：左側為網球場（兩座標準網球場地，橫向配置）；右側為多功能球場（一座標準硬地網球場地與一座排球場地，橫向配置）。主要功能為提供學校網球隊練習與比賽場所。',
+                desc: '由兩座具太陽能光電屋頂的球場組成：左側為網球場（兩座標準網球場地）；右側為多功能球場（一座標準硬地網球場地與一座排球場地）。主要功能為提供學校網球隊練習與比賽場所。',
                 radius: 10,
                 isTennis: true,
+                rotY: Math.PI / 3,   // 逆時針旋轉 60 度
                 colorTop: 0x4DB6AC,
                 facilities: {
-                    '左側 網球場 (太陽能光電屋頂)': ['標準網球場地 ×2 (橫向)'],
-                    '右側 多功能球場 (太陽能光電屋頂)': ['標準硬地網球場地 ×1 (橫向)', '排球場地 ×1'],
+                    '左側 網球場': ['標準網球場地 ×2 '],
+                    '右側 多功能球場': ['標準硬地網球場地 ×1', '排球場地 ×1'],
                     '主要功能': ['學校網球隊練習場所', '多功能綜合球場']
                 }
             },
             {
                 id: 'audiovisual',
                 name: '視聽教室',
-                desc: '主要功能為海韻國樂團練習場所，同時提供多媒體視聽教學使用。',
+                desc: '主要功能為海韻國樂團練習場所。',
                 radius: 5.5,
                 colorTop: 0xA1887F,
                 facilities: {
-                    '主要功能': ['海韻國樂團練習場所', '多媒體視聽教學室']
+                    '主要功能': ['海韻國樂團練習場所']
                 }
             },
             {
                 id: 'haiyun',
                 name: '海韻樓',
-                desc: '為兩層樓教學建築，平面呈「」」型（右側縱向棟加下方橫向棟），提供輔導陪伴、中年級班級教學與專長輔導空間。',
-                radius: 8,
+                desc: '為兩層樓教學建築，是中年級班級教學區與輔導室行政辦公室。上方為「烏魚子廣場」，中庭設有兒童遊樂器材區。',
+                radius: 11,
                 floors: 2,
+                rotY: Math.PI / 6,   // 逆時針旋轉 30 度
                 colorTop: 0x81C784,
                 facilities: {
-                    '主要設施': ['輔導室', '中年級班級教室', '自然教室', '賜福學苑']
+                    '主要設施': ['輔導室', '中年級班級教室', '自然教室', '賜福學苑'],
+                    '戶外設施': ['烏魚子廣場', '兒童遊樂器材區']
                 }
             },
             {
                 id: 'kitchen',
                 name: '廚房',
                 desc: '主要功能為提供校園內全體師生每日營養健康之午餐製作與供應中心。',
-                radius: 5.0,
+                radius: 6.0,
                 colorTop: 0xFFB74D,
                 facilities: {
-                    '主要功能': ['午餐中央廚房', '營養午餐供應中心']
+                    '主要功能': ['午餐中央廚房', '營養午餐與幼兒園點心供應中心']
                 }
+            },
+            {
+                id: 'farm',
+                name: '開心農場',
+                desc: '學校樂齡志工協助負責種植蔬菜，讓孩子體驗食農教育的樂趣與經驗。',
+                radius: 8.5,
+                isFarm: true,
+                colorTop: 0x9CCC65,
+                facilities: {
+                    '農場配置': ['兩塊菜園', '農具小屋與澆水桶'],
+                    '食農教育': ['樂齡志工協助種植蔬菜', '孩子體驗種植與收成', '食農教育體驗課程']
+                    }
             },
             {
                 id: 'kindergarten',
                 name: '幼兒園',
-                desc: '為三層樓建築。1至2樓為幼兒園教學與行政區，設有熊貓班、乖兔班、米老鼠班與行政辦公室；3樓為柔道教室，提供學校柔道隊與柔道社團教學及訓練使用。幼兒園前方設有屋頂式裸空連通走道連接橋梁，走道左側設有兒童遊樂器材區。',
+                desc: '為三層樓建築。1至2樓為幼兒園教學與行政區，設有熊貓班、乖兔班、米老鼠班與行政辦公室；3樓為柔道教室，提供學校柔道隊與柔道社團教學及訓練使用。左側設有兒童遊樂器材區。',
                 radius: 11,
                 floors: 3,
                 colorTop: 0xAED581,
                 facilities: {
                     '1-2樓 幼兒園教學行政區': ['幼兒園網頁', '熊貓班', '乖兔班', '米老鼠班', '行政辦公室'],
                     '3樓 柔道教室': ['柔道教室 (柔道隊與柔道社團教學、訓練場所)'],
-                    '戶外設施': ['有屋頂裸空連通走道 (連接橋梁)', '兒童遊樂器材區 (溜滑梯、盪鞦韆、沙坑)']
+                    '戶外設施': ['兒童遊樂器材區']
                 }
             }
         ];
@@ -577,7 +611,9 @@
 
             pickNext() {
                 const nb = this.from.nb;
-                let c = nb.filter(e => e.to !== this.prev);
+                const ok = e => !this.allowed || this.allowed.has(e.to);
+                let c = nb.filter(e => e.to !== this.prev && ok(e));
+                if (!c.length) c = nb.filter(ok);
                 if (!c.length) c = nb;
                 const e = c[Math.floor(Math.random() * c.length)];
                 this.to = e.to; this.halfW = e.halfW; this.t = 0;
@@ -609,7 +645,7 @@
                 this.t += this.speed * dt / this.len;
                 if (this.t >= 1) {
                     this.prev = this.from; this.from = this.to; this.t = 0;
-                    const deadEnd = this.from.nb.length === 1;
+                    const deadEnd = this.allowed ? this.from.nb.filter(e => this.allowed.has(e.to)).length <= 1 : this.from.nb.length === 1;
                     if (deadEnd || Math.random() < 0.04) {
                         this.isIdle = true; this.idleTimer = 1.2 + Math.random() * 2.2;
                         if (deadEnd) this.prev = null;
@@ -769,8 +805,127 @@
             return g;
         }
 
+        // --- 欄杆(綠色) + 強化玻璃矮牆：2~3 樓教室外走廊防墜 ---
+        let railMats = null;
+        function getRailMats() {
+            if (!railMats) railMats = {
+                green: new THREE.MeshStandardMaterial({ color: 0x2E9E4F, roughness: 0.45, metalness: 0.25 }),
+                glass: new THREE.MeshStandardMaterial({ color: 0xBFE6F2, transparent: true, opacity: 0.32, roughness: 0.05, metalness: 0.1, side: THREE.DoubleSide, depthWrite: false })
+            };
+            return railMats;
+        }
+        function addRailing(g, x0, z0, x1, z1, y) {
+            const len = Math.hypot(x1 - x0, z1 - z0);
+            if (len < 0.05) return;
+            const { green, glass } = getRailMats();
+            const grp = new THREE.Group();
+            grp.position.set((x0 + x1) / 2, y, (z0 + z1) / 2);
+            grp.rotation.y = Math.atan2(x1 - x0, z1 - z0);
+            const add = (geo, m, py, pz, shadow = true) => { const o = new THREE.Mesh(geo, m); o.position.set(0, py, pz); o.castShadow = shadow; grp.add(o); return o; };
+            add(new THREE.BoxGeometry(0.05, 0.55, len), glass, 0.3, 0, false);          // 透明強化玻璃矮牆
+            add(new THREE.BoxGeometry(0.07, 0.05, len), green, 0.58, 0);                 // 玻璃壓條
+            add(new THREE.BoxGeometry(0.07, 0.07, len), green, 1.02, 0);                 // 綠色扶手
+            add(new THREE.BoxGeometry(0.04, 0.04, len), green, 0.82, 0);                 // 綠色中間橫桿
+            const n = Math.max(1, Math.round(len / 1.1));
+            for (let i = 0; i <= n; i++) add(new THREE.CylinderGeometry(0.035, 0.035, 1.0, 8), green, 0.5, -len / 2 + len * i / n);
+            g.add(grp);
+        }
+
+        // --- 文字招牌 ---
+        function createTextSign(text, w, h, bg, fg) {
+            const c = document.createElement('canvas'); c.width = 512; c.height = Math.round(512 * h / w);
+            const ctx = c.getContext('2d');
+            const draw = () => {
+                ctx.fillStyle = bg; ctx.fillRect(0, 0, c.width, c.height);
+                ctx.strokeStyle = fg; ctx.lineWidth = 8; ctx.strokeRect(10, 10, c.width - 20, c.height - 20);
+                ctx.fillStyle = fg; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                ctx.font = `900 ${Math.round(c.height * 0.52)}px 'Noto Sans TC','Microsoft JhengHei',sans-serif`;
+                ctx.fillText(text, c.width / 2, c.height / 2 + 4);
+            };
+            draw();
+            const tex = makeTex(c);
+            if (document.fonts && document.fonts.load) document.fonts.load("900 40px 'Noto Sans TC'", text).then(() => { draw(); tex.needsUpdate = true; }).catch(() => {});
+            const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshStandardMaterial({ map: tex, roughness: 0.6, side: THREE.DoubleSide }));
+            m.castShadow = true;
+            return m;
+        }
+
+        // --- 建築物 1~2 樓教室外走廊 (有屋頂)；2 樓設綠色欄杆 + 強化玻璃矮牆 ---
+        // c = { side: ±1 (走廊在建築物局部 ±z 側), w: 走廊寬, a, b: 沿局部 x 的範圍, railA, railB: 外緣欄杆範圍, endA, endB: 兩端是否加欄杆 }
+        function addBuildingCorridor(group, floors, width, depth, c) {
+            const fh = 1.8, s = c.side || -1, w = c.w || 1.6, a = c.a, b = c.b, cf = Math.min(floors, 2);
+            const len = b - a, xm = (a + b) / 2, zIn = s * depth / 2, zOut = s * (depth / 2 + w), zc = (zIn + zOut) / 2;
+            const M = (col, r) => new THREE.MeshStandardMaterial({ color: col, roughness: r });
+            const slabM = M(0xD7CCC8, 0.8), roofM = M(0x1565C0, 0.5), pilM = M(0xECEFF1, 0.5), doorM = M(0x5D4037, 0.7);
+            const S = (geo, m, x, y, z) => { const o = new THREE.Mesh(geo, m); o.position.set(x, y, z); o.castShadow = true; o.receiveShadow = true; group.add(o); return o; };
+            S(new THREE.BoxGeometry(len, 0.3, w - 0.15), slabM, xm, 0.15, s * (depth / 2 + (w + 0.15) / 2));     // 1 樓地坪
+            for (let f = 1; f < cf; f++) S(new THREE.BoxGeometry(len, 0.16, w), slabM, xm, f * fh - 0.08, zc);   // 2 樓走廊樓板
+            S(new THREE.BoxGeometry(len + 0.2, 0.14, w + 0.3), roofM, xm, cf * fh + 0.07, zc + s * 0.1);        // 走廊屋頂
+            const n = Math.max(1, Math.round(len / 2.0)), ph = cf * fh - 0.3;
+            for (let i = 0; i <= n; i++) S(new THREE.CylinderGeometry(0.07, 0.08, ph, 8), pilM, a + len * i / n, 0.3 + ph / 2, zOut - s * 0.1);
+            if (cf >= 2) {
+                const zr = zOut - s * 0.05;
+                addRailing(group, c.railA !== undefined ? c.railA : a, zr, c.railB !== undefined ? c.railB : b, zr, fh);
+                if (c.endA !== false) addRailing(group, a, zIn, a, zr, fh);
+                if (c.endB !== false) addRailing(group, b, zIn, b, zr, fh);
+            }
+            // 教室門 (落在兩扇窗之間)
+            const nw = Math.max(2, Math.floor(width / 1.5)), sp = width / (nw + 1);
+            for (let i = 1; i < nw; i++) {
+                const dx = -width / 2 + sp * (i + 0.5);
+                if (dx < a + 0.5 || dx > b - 0.5) continue;
+                for (let f = 0; f < cf; f++) {
+                    if (s > 0 && f === 0 && Math.abs(dx) < 1.3) continue;   // 避開正門
+                    const d = new THREE.Mesh(new THREE.BoxGeometry(0.8, 1.2, 0.07), doorM);
+                    d.position.set(dx, (f === 0 ? 0.3 : f * fh) + 0.7, s * (depth / 2 + 0.04)); d.castShadow = true; group.add(d);
+                }
+            }
+        }
+
+        // --- 烏魚子廣場 (連鎖磚地板，造型取自烏魚子) ---
+        const ROE_SEGS = [
+            [0.28, -0.5, 0.5, -0.3, 0.5, -0.05], [0.5, 0.15, 0.5, 0.32, 0.42, 0.4], [0.42, 0.47, 0.3, 0.53, 0.2, 0.5], [0.12, 0.48, 0.05, 0.42, 0, 0.42],
+            [-0.05, 0.42, -0.12, 0.48, -0.2, 0.5], [-0.3, 0.53, -0.42, 0.47, -0.42, 0.4], [-0.5, 0.32, -0.5, 0.15, -0.5, -0.05], [-0.5, -0.3, -0.28, -0.5, 0, -0.5]
+        ];
+        function roeOutline(p, tx, ty) {
+            p.moveTo(tx(0), ty(-0.5));
+            ROE_SEGS.forEach(s => p.bezierCurveTo(tx(s[0]), ty(s[1]), tx(s[2]), ty(s[3]), tx(s[4]), ty(s[5])));
+        }
+        function createRoePlazaTexture() {
+            const cw = 512, ch = 1024;
+            const c = document.createElement('canvas'); c.width = cw; c.height = ch;
+            const ctx = c.getContext('2d');
+            const tx = u => (u + 0.5) * cw, ty = v => (0.5 - v) * ch;
+            let seed = 11; const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
+            ctx.save(); ctx.beginPath(); roeOutline(ctx, tx, ty); ctx.closePath(); ctx.clip();
+            ctx.fillStyle = '#7A5427'; ctx.fillRect(0, 0, cw, ch);
+            const tones = ['#DB9C48', '#D18D3A', '#E3AC5C', '#C98032', '#D8963F'], bw = 48, bh = 24;
+            for (let row = 0; row * bh < ch; row++) for (let col = -1; col * bw < cw; col++) {   // 連鎖磚 (錯縫排列)
+                ctx.fillStyle = tones[Math.floor(rnd() * tones.length)];
+                ctx.fillRect(col * bw + (row % 2 ? bw / 2 : 0) + 1.5, row * bh + 1.5, bw - 3, bh - 3);
+            }
+            ctx.strokeStyle = 'rgba(105,55,18,0.6)'; ctx.lineWidth = 11; ctx.lineCap = 'round';   // 中央凹槽 (烏魚子雙葉)
+            ctx.beginPath(); ctx.moveTo(tx(0), ty(0.42)); ctx.bezierCurveTo(tx(-0.03), ty(0.25), tx(0.03), ty(0.0), tx(0), ty(-0.38)); ctx.stroke();
+            ctx.beginPath(); roeOutline(ctx, tx, ty); ctx.closePath();                                // 外緣淺色鋪邊
+            ctx.lineWidth = 46; ctx.strokeStyle = '#F0DDB0'; ctx.lineJoin = 'round'; ctx.stroke();
+            ctx.restore();
+            ctx.beginPath(); roeOutline(ctx, tx, ty); ctx.closePath(); ctx.lineWidth = 5; ctx.strokeStyle = '#8A5A22'; ctx.stroke();
+            return makeTex(c);
+        }
+        function addRoePlaza(g, cx, cz, rotY, W, L) {
+            const shape = new THREE.Shape();
+            roeOutline(shape, u => u * W, v => v * L); shape.closePath();
+            const geo = new THREE.ShapeGeometry(shape, 24);
+            const pos = geo.attributes.position, uv = geo.attributes.uv;
+            for (let i = 0; i < pos.count; i++) uv.setXY(i, pos.getX(i) / W + 0.5, pos.getY(i) / L + 0.5);
+            const mesh = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ map: createRoePlazaTexture(), roughness: 0.85 }));
+            mesh.rotation.x = -Math.PI / 2; mesh.receiveShadow = true;
+            const grp = new THREE.Group(); grp.position.set(cx, 0.8, cz); grp.rotation.y = rotY; grp.add(mesh);
+            g.add(grp);
+        }
+
         // --- Multi-Story Building Generator ---
-        function createMultiStoryBuilding(floors, width, depth, wallColor = 0xF5F5F5, roofColor = 0xD32F2F, hasDoor = true, solarRoof = false) {
+        function createMultiStoryBuilding(floors, width, depth, wallColor = 0xF5F5F5, roofColor = 0xD32F2F, hasDoor = true, solarRoof = false, corridor = null) {
             const group = new THREE.Group();
             const fh = 1.8;
             const wallMat = new THREE.MeshStandardMaterial({ color: wallColor, roughness: 0.55 });
@@ -812,6 +967,7 @@
                 const step = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.2, 0.7), bandMat);
                 step.position.set(0, 0.1, depth / 2 + 0.45); step.receiveShadow = true; group.add(step);
             }
+            if (corridor) addBuildingCorridor(group, floors, width, depth, corridor);
             return group;
         }
 
@@ -1416,9 +1572,9 @@
         }
 
         // --- 賜福樓：連鎖磚泡泡廣場 ---
-        function createBubblePlazaTexture() {
-            const S = 80, W = 10, H = 12;
-            const c = document.createElement('canvas'); c.width = W * S; c.height = H * S;
+        function createBubblePlazaTexture(Wu, Hu) {
+            const S = 80; Wu = Wu || 10; Hu = Hu || 12;
+            const c = document.createElement('canvas'); c.width = Math.round(Wu * S); c.height = Math.round(Hu * S);
             const ctx = c.getContext('2d');
             let seed = 7; const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
             const tones = ['#D9B38C', '#CFA27A', '#E2C09B', '#C4926B', '#D6AA83'];
@@ -1432,7 +1588,8 @@
                 }
             }
             const cols = ['rgba(66,165,245,', 'rgba(38,198,218,', 'rgba(244,143,177,', 'rgba(255,213,79,', 'rgba(129,199,132,', 'rgba(186,104,200,'];
-            for (let i = 0; i < 46; i++) {                                      // 泡泡圖案
+            const nb = Math.round(46 * (Wu * Hu) / 120);
+            for (let i = 0; i < nb; i++) {                                      // 泡泡圖案
                 const r = (0.25 + rnd() * 0.9) * S, x = rnd() * c.width, y = rnd() * c.height, col = cols[i % cols.length];
                 ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.fillStyle = col + '0.55)'; ctx.fill();
                 ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(255,255,255,0.85)'; ctx.stroke();
@@ -1440,46 +1597,255 @@
             }
             return makeTex(c);
         }
-        function addBubblePlaza(g) {
-            const m = new THREE.Mesh(new THREE.PlaneGeometry(10, 12), new THREE.MeshStandardMaterial({ map: createBubblePlazaTexture(), roughness: 0.85 }));
-            m.rotation.x = -Math.PI / 2; m.position.set(0, 0.77, 0); m.receiveShadow = true; g.add(m);
-        }
-        // --- 賜福樓：靠近水池一側的 2 樓、3 樓跨棟連通走廊 ---
-        function addMainCorridors(g) {
-            const steel = new THREE.MeshStandardMaterial({ color: 0xCFD8DC, roughness: 0.5 });
-            const body = new THREE.MeshStandardMaterial({ color: 0xECEFF1, roughness: 0.45 });
-            const roofM = new THREE.MeshStandardMaterial({ color: 0x1565C0, roughness: 0.5 });
-            const glass = getGlassMat();
-            const cz = 4.0, L = 10.4;
-            const S = (geo, m, x, y, z) => { const o = new THREE.Mesh(geo, m); o.position.set(x, y, z); o.castShadow = true; o.receiveShadow = true; g.add(o); return o; };
-            [1, 2].forEach(f => {
-                const base = 0.75 + 1.8 * f;
-                S(new THREE.BoxGeometry(L, 0.2, 2.6), steel, 0, base - 0.1, cz);
-                S(new THREE.BoxGeometry(L, 1.5, 2.4), body, 0, base + 0.85, cz);
-                [-1, 1].forEach(s => S(new THREE.BoxGeometry(L - 0.8, 0.85, 0.05), glass, 0, base + 0.9, cz + s * 1.21));
-            });
-            S(new THREE.BoxGeometry(L, 0.18, 2.6), roofM, 0, 0.75 + 3.6 + 1.6 + 0.09, cz);
-            [-4.2, 4.2].forEach(x => [-0.9, 0.9].forEach(dz => S(new THREE.CylinderGeometry(0.2, 0.22, 1.6, 12), steel, x, 1.55, cz + dz)));
+        function addBubblePlaza(g, cx, cz, w, h) {
+            const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshStandardMaterial({ map: createBubblePlazaTexture(w, h), roughness: 0.85 }));
+            m.rotation.x = -Math.PI / 2; m.position.set(cx, 0.77, cz); m.receiveShadow = true; g.add(m);
         }
 
-        // --- 光輝館/路網 ---
+        // =============== 賜福樓：依「賜福樓.jpg」配置 ===============
+        // 左棟(西)：6 間教室 + 中間 1-3 樓樓梯，東側為 1-3 樓教室外走廊(有屋頂)
+        // 右棟(東)：縱向棟 3 間教室(西側走廊有屋頂、北端旋轉樓梯、南端 1-3 樓樓梯) + 下方橫向棟 1 間大教室(北側走廊)
+        // 兩棟之間：1-3 樓連通走道 (3 樓沒屋頂)；中間為泡泡廣場
+        function createMainComplex() {
+            const g = new THREE.Group();
+            const FH = 1.8, PL = 0.2, lv = f => PL + f * FH, roofTop = lv(2) + FH;
+            const M = (c, r = 0.55) => new THREE.MeshStandardMaterial({ color: c, roughness: r });
+            const wall = M(0xFAFAFA), slabM = M(0xE0E0E0, 0.7), accent = M(0xC62828, 0.5), col = M(0xF5F5F5, 0.5), plinthM = M(0xCFC4AE, 0.85), frameM = M(0xFFFFFF, 0.5), doorM = M(0x5D4037, 0.7), roofBlue = M(0x1565C0, 0.5), bridgeM = M(0xF2B27A, 0.7);
+            const glass = getGlassMat();
+            const B = (w, h, d) => new THREE.BoxGeometry(w, h, d);
+            const S = (geo, m, x, y, z) => { const o = new THREE.Mesh(geo, m); o.position.set(x, y, z); o.castShadow = true; o.receiveShadow = true; g.add(o); return o; };
+            const win = (x, y, z, ry) => { const w = new THREE.Group(); w.add(new THREE.Mesh(B(1.0, 0.9, 0.06), frameM)); w.add(new THREE.Mesh(B(0.84, 0.74, 0.09), glass)); w.position.set(x, y, z); w.rotation.y = ry; g.add(w); };
+            const door = (x, y, z, ry) => { const d = new THREE.Mesh(B(0.8, 1.2, 0.07), doorM); d.position.set(x, y, z); d.rotation.y = ry; d.castShadow = true; g.add(d); };
+            const rail = (x0, z0, x1, z1, f) => addRailing(g, x0, z0, x1, z1, lv(f));
+            const split = (a, b, n) => Array.from({ length: n }, (_, i) => [a + (b - a) * i / n, a + (b - a) * (i + 1) / n]);
+
+            // ---- 教室棟量體 (三層) ----
+            const block = (x0, x1, z0, z1) => {
+                const w = x1 - x0, d = z1 - z0, cx = (x0 + x1) / 2, cz = (z0 + z1) / 2;
+                S(B(w, PL, d), plinthM, cx, PL / 2, cz);
+                [0, 1].forEach(f => S(B(w, FH - 0.18, d), wall, cx, lv(f) + (FH - 0.18) / 2, cz));
+                [1, 2].forEach(f => S(B(w, 0.18, d), slabM, cx, lv(f) - 0.09, cz));
+                S(B(w, FH, d), wall, cx, lv(2) + FH / 2, cz);
+                S(B(w + 0.3, 0.2, d + 0.3), accent, cx, roofTop + 0.1, cz);
+            };
+            block(-12, -8.8, -7, -1.2);     // 左棟北 3 間教室
+            block(-12, -8.8, 1.2, 7);       // 左棟南 3 間教室
+            block(8.8, 12, -6.5, 0);        // 右縱向棟 3 間教室 (上 2 小 + 下 1 大)
+            block(2.9, 12, 3.8, 7);         // 右下橫向棟 1 間大教室
+
+            // ---- 教室外走廊 (1~3 樓，有屋頂) ----
+            const corr = (x0, x1, z0, z1, roof, mat) => {
+                const w = x1 - x0, d = z1 - z0, cx = (x0 + x1) / 2, cz = (z0 + z1) / 2;
+                S(B(w, PL, d), plinthM, cx, PL / 2, cz);
+                [1, 2].forEach(f => S(B(w, 0.18, d), mat || slabM, cx, lv(f) - 0.09, cz));
+                if (roof) S(B(w + 0.2, 0.16, d + 0.2), roofBlue, cx, roofTop + 0.08, cz);
+            };
+            corr(-8.8, -7.2, -7, 7, true);          // 左棟 東側走廊
+            corr(7.2, 8.8, -6.5, 2.2, true);        // 右縱向棟 西側走廊
+            corr(2.9, 12, 2.2, 3.8, true);          // 右橫向棟 北側走廊
+            corr(-7.2, 2.9, 2.2, 4.4, false, bridgeM);   // 1-3 樓連通走道 (3 樓沒屋頂)
+
+            const pil = (x, z) => S(new THREE.CylinderGeometry(0.09, 0.1, roofTop - PL, 10), col, x, PL + (roofTop - PL) / 2, z);
+            [-6.8, -5.0, -3.2, -1.4, 0.4, 5.2, 6.8].forEach(z => pil(-7.35, z));
+            [-6.3, -4.5, -2.7, -0.9, 0.9].forEach(z => pil(7.35, z));
+            [3.2, 5.0, 6.8].forEach(x => pil(x, 2.35));
+            [-6.6, -3.6, 2.6].forEach(x => [2.35, 4.25].forEach(z => S(new THREE.CylinderGeometry(0.1, 0.11, lv(2) - PL, 10), col, x, PL + (lv(2) - PL) / 2, z)));   // 連通走道支柱 (1F、2F)
+
+            // ---- 2、3 樓：綠色欄杆 + 透明強化玻璃矮牆 ----
+            [1, 2].forEach(f => {
+                rail(-7.25, -7, -7.25, 2.2, f); rail(-7.25, 4.4, -7.25, 7, f);
+                rail(-8.8, -7, -7.25, -7, f); rail(-8.8, 7, -7.25, 7, f);
+                rail(7.25, -6.5, 7.25, 2.2, f);
+                rail(2.9, 2.25, 7.25, 2.25, f);
+                rail(11.95, 2.2, 11.95, 3.8, f);
+                rail(-7.25, 2.25, 2.9, 2.25, f); rail(-7.25, 4.35, 2.9, 4.35, f);
+            });
+
+            // ---- 教室門窗 ----
+            const roomsV = (list, xC, ryC, xB, ryB) => list.forEach(([za, zb]) => {
+                const zc = (za + zb) / 2, L = zb - za;
+                [0, 1, 2].forEach(f => {
+                    win(xC, lv(f) + 1.0, zc + L * 0.3, ryC);
+                    door(xC, lv(f) + 0.7, zc - L * 0.22, ryC);
+                    win(xB, lv(f) + 1.0, zc, ryB);
+                });
+            });
+            roomsV([...split(-7, -1.2, 3), ...split(1.2, 7, 3)], -8.77, Math.PI / 2, -12.03, -Math.PI / 2);
+            roomsV([[-6.5, -4.7], [-4.7, -2.9], [-2.9, 0]], 8.77, -Math.PI / 2, 12.03, Math.PI / 2);
+            [0, 1, 2].forEach(f => {
+                const y = lv(f) + 1.0;
+                [4.3, 6.0, 7.7, 9.4].forEach(x => win(x, y, 3.77, Math.PI));
+                [3.5, 10.9].forEach(x => door(x, lv(f) + 0.7, 3.77, Math.PI));
+                [3.9, 5.4, 6.9, 8.4, 9.9, 11.4].forEach(x => win(x, y, 7.03, 0));
+                win(12.03, y, 5.4, Math.PI / 2); win(2.87, y, 5.9, -Math.PI / 2);
+                win(10.4, y, -6.53, Math.PI); win(-10.4, y, -7.03, Math.PI); win(-10.4, y, 7.03, 0);
+            });
+
+            // ---- 太陽能光電斜屋頂 ----
+            const baseY = roofTop + 0.2;
+            const roofL = new THREE.Group(); roofL.position.set(-10.4, 0, 0); roofL.rotation.y = Math.PI / 2; addSolarShedRoof(roofL, 14, 3.2, baseY); g.add(roofL);
+            const roofR = new THREE.Group(); roofR.position.set(10.4, 0, -2.15); roofR.rotation.y = -Math.PI / 2; addSolarShedRoof(roofR, 8.7, 3.2, baseY); g.add(roofR);
+            const roofH = new THREE.Group(); roofH.position.set(7.45, 0, 5.4); roofH.rotation.y = Math.PI; addSolarShedRoof(roofH, 9.1, 3.2, baseY); g.add(roofH);
+
+            // ---- 1-3 樓樓梯 (左棟中間、右棟南端) 與 1-3 樓旋轉樓梯 (右棟北端) ----
+            const twL = createStairTower(); twL.position.set(-10.8, 0, 0); twL.rotation.y = Math.PI; g.add(twL);
+            const twR = createStairTower(); twR.position.set(10.8, 0, 1.1); g.add(twR);
+            const sp = createSpiralStair(); sp.position.set(8.0, 0, -8.6); g.add(sp);
+            return g;
+        }
+
+        function createStairTower() {
+            const g = new THREE.Group();
+            const FH = 1.8, PL = 0.2, lv = f => PL + f * FH;
+            const M = (c, r = 0.55) => new THREE.MeshStandardMaterial({ color: c, roughness: r });
+            const stepM = M(0xB0BEC5, 0.6), slabM = M(0xE0E0E0, 0.7), steel = M(0x78909C, 0.45), accent = M(0xC62828, 0.5), plinthM = M(0xCFC4AE, 0.85), glass = getGlassMat();
+            const B = (w, h, d) => new THREE.BoxGeometry(w, h, d);
+            const S = (geo, m, x, y, z) => { const o = new THREE.Mesh(geo, m); o.position.set(x, y, z); o.castShadow = true; o.receiveShadow = true; g.add(o); return o; };
+            const ang = Math.atan2(0.9, 1.2), sl = Math.hypot(1.2, 0.9);
+            S(B(3.2, PL, 2.4), plinthM, -0.4, PL / 2, 0);
+            for (let f = 0; f < 2; f++) {
+                const L = lv(f);
+                for (let i = 0; i < 6; i++) S(B(0.2, 0.07, 1.0), stepM, -1.1 + 0.2 * (i + 0.5), L + 0.15 * (i + 1) - 0.035, -0.6);
+                S(B(1.0, 0.1, 2.2), slabM, 0.6, L + 0.85, 0);
+                for (let i = 0; i < 6; i++) S(B(0.2, 0.07, 1.0), stepM, 0.1 - 0.2 * (i + 0.5), L + 0.9 + 0.15 * (i + 1) - 0.035, 0.6);
+                [-0.52, 0.52].forEach(dz => {
+                    const a = S(B(sl, 0.1, 0.05), steel, -0.5, L + 0.45, -0.6 + dz); a.rotation.z = ang;
+                    const b = S(B(sl, 0.1, 0.05), steel, -0.5, L + 0.9 + 0.45, 0.6 + dz); b.rotation.z = -ang;
+                });
+                S(B(0.8, 0.1, 2.2), slabM, -1.5, lv(f + 1) - 0.05, 0);
+            }
+            [-1.9, 1.1].forEach(x => [-1.1, 1.1].forEach(z => S(new THREE.CylinderGeometry(0.07, 0.08, lv(2) + FH - PL, 10), steel, x, PL + (lv(2) + FH - PL) / 2, z)));
+            [1, 2].forEach(f => {
+                const y = lv(f) + 0.5;
+                [-1.1, 1.1].forEach(z => S(B(3.0, 0.85, 0.04), glass, -0.4, y, z));
+                S(B(0.04, 0.85, 2.2), glass, 1.1, y, 0);
+            });
+            S(B(3.4, 0.14, 2.6), accent, -0.4, lv(2) + FH + 0.07, 0);
+            return g;
+        }
+
+        function createSpiralStair() {
+            const g = new THREE.Group();
+            const FH = 1.8, PL = 0.2, lv = f => PL + f * FH, N = 24, rise = 2 * FH / N, dth = 4 * Math.PI / N;
+            const M = (c, r = 0.55) => new THREE.MeshStandardMaterial({ color: c, roughness: r });
+            const stepM = M(0xB0BEC5, 0.6), steel = M(0x78909C, 0.45), slabM = M(0xE0E0E0, 0.7), plinthM = M(0xCFC4AE, 0.85), accent = M(0xC62828, 0.5), rail = M(0xECEFF1, 0.4);
+            const B = (w, h, d) => new THREE.BoxGeometry(w, h, d);
+            const S = (geo, m, x, y, z) => { const o = new THREE.Mesh(geo, m); o.position.set(x, y, z); o.castShadow = true; o.receiveShadow = true; g.add(o); return o; };
+            const poleH = lv(2) + 1.5;
+            S(new THREE.CylinderGeometry(0.14, 0.14, poleH, 14), steel, 0, poleH / 2, 0);
+            const pts = [];
+            for (let i = 1; i <= N; i++) {
+                const phi = i * dth, dx = Math.sin(phi), dz = Math.cos(phi), y = PL + rise * i;
+                const st = S(B(0.62, 0.07, 1.15), stepM, dx * 0.72, y - 0.035, dz * 0.72); st.rotation.y = phi;
+                if (i % 2 === 0) S(new THREE.CylinderGeometry(0.025, 0.025, 0.95, 6), rail, dx * 1.26, y + 0.45, dz * 1.26);
+            }
+            for (let t = 0; t <= N; t += 0.5) { const phi = t * dth; pts.push(new THREE.Vector3(Math.sin(phi) * 1.26, PL + rise * t + 0.95, Math.cos(phi) * 1.26)); }
+            const tube = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), N * 4, 0.03, 6), rail);
+            tube.castShadow = true; g.add(tube);
+            S(B(1.7, PL, 1.2), plinthM, 0, PL / 2, 1.7);
+            [1, 2].forEach(f => S(B(1.7, 0.15, 1.2), slabM, 0, lv(f) - 0.075, 1.7));
+            S(new THREE.ConeGeometry(1.75, 0.8, 18), accent, 0, poleH + 0.4, 0);
+            return g;
+        }
+
+        // =============== 開心農場 ===============
+        function addFarm(group) {
+            const Y = 0.75;
+            const M = (c, r = 0.8) => new THREE.MeshStandardMaterial({ color: c, roughness: r });
+            const soil = M(0x5D4037, 1), ridge = M(0x4E342E, 1), wood = M(0x8D6E63, 0.8);
+            const mt = { leaf: M(0x43A047), leaf2: M(0x66BB6A), cab: M(0xA5D6A7), cab2: M(0x7CB342), tomato: M(0xE53935, 0.5), orange: M(0xFB8C00, 0.6), purple: M(0x6A1B9A, 0.5), stake: M(0xA1887F), green: M(0x2E7D32) };
+            const sph = new THREE.SphereGeometry(1, 10, 8), cone = new THREE.ConeGeometry(1, 1, 6), cyl = new THREE.CylinderGeometry(1, 1, 1, 6);
+            const put = (geo, m, x, y, z, sx, sy, sz) => { const o = new THREE.Mesh(geo, m); o.position.set(x, y, z); o.scale.set(sx, sy, sz); o.castShadow = true; group.add(o); return o; };
+            const S = (geo, m, x, y, z) => { const o = new THREE.Mesh(geo, m); o.position.set(x, y, z); o.castShadow = true; o.receiveShadow = true; group.add(o); return o; };
+            const by = Y + 0.26;
+            const crops = {
+                leaf: (x, z) => { [[-0.1, 0], [0.1, 0.05], [0, -0.1]].forEach((o, k) => put(sph, k % 2 ? mt.leaf2 : mt.leaf, x + o[0], by + 0.1, z + o[1], 0.15, 0.12, 0.15)); },
+                cabbage: (x, z) => { put(sph, mt.cab2, x, by + 0.14, z, 0.28, 0.18, 0.28); put(sph, mt.cab, x, by + 0.2, z, 0.2, 0.17, 0.2); },
+                carrot: (x, z) => { [[-0.08, 0], [0.08, 0.03], [0, -0.08]].forEach(o => { const c = put(cone, mt.green, x + o[0], by + 0.16, z + o[1], 0.06, 0.32, 0.06); c.rotation.z = o[0] * 2; }); put(sph, mt.orange, x, by + 0.02, z + 0.12, 0.07, 0.05, 0.07); },
+                tomato: (x, z) => { put(cyl, mt.stake, x, by + 0.4, z, 0.015, 0.8, 0.015); put(sph, mt.leaf, x, by + 0.35, z, 0.17, 0.2, 0.17); [[0.12, 0.15], [-0.1, 0.3], [0.08, 0.5]].forEach(o => put(sph, mt.tomato, x + o[0], by + o[1], z + 0.08, 0.06, 0.06, 0.06)); },
+                eggplant: (x, z) => { put(sph, mt.leaf, x, by + 0.2, z, 0.22, 0.2, 0.22); [[-0.1, 0.1], [0.1, 0.06]].forEach(o => put(sph, mt.purple, x + o[0], by + o[1], z + 0.15, 0.05, 0.12, 0.05)); }
+            };
+            const plots = [[-2.9, ['leaf', 'cabbage', 'carrot', 'leaf', 'tomato']], [2.9, ['eggplant', 'tomato', 'cabbage', 'carrot', 'leaf']]];
+            plots.forEach(([pz, rows]) => {
+                S(new THREE.BoxGeometry(9.0, 0.14, 3.8), soil, 0, Y + 0.07, pz);
+                [-1, 1].forEach(s => { S(new THREE.BoxGeometry(9.3, 0.22, 0.14), wood, 0, Y + 0.11, pz + s * 1.97); S(new THREE.BoxGeometry(0.14, 0.22, 4.0), wood, s * 4.6, Y + 0.11, pz); });
+                rows.forEach((type, r) => {
+                    const rz = pz + (r - 2) * 0.7;
+                    S(new THREE.BoxGeometry(8.6, 0.12, 0.42), ridge, 0, Y + 0.2, rz);
+                    for (let k = 0; k < 9; k++) crops[type](-3.8 + k * 0.95, rz);
+                });
+            });
+            // 稻草人
+            S(new THREE.CylinderGeometry(0.04, 0.04, 1.5, 8), wood, 4.15, Y + 0.75, -2.9);
+            const arm = S(new THREE.CylinderGeometry(0.035, 0.035, 1.1, 8), wood, 4.15, Y + 1.15, -2.9); arm.rotation.z = Math.PI / 2;
+            S(new THREE.BoxGeometry(0.34, 0.42, 0.16), M(0x1E88E5), 4.15, Y + 0.98, -2.9);
+            S(new THREE.SphereGeometry(0.14, 12, 10), M(0xF5D6A8), 4.15, Y + 1.42, -2.9);
+            S(new THREE.ConeGeometry(0.2, 0.2, 12), M(0xFDD835), 4.15, Y + 1.62, -2.9);
+            S(new THREE.CylinderGeometry(0.27, 0.27, 0.02, 14), M(0xFDD835), 4.15, Y + 1.53, -2.9);
+            // 農具小屋與水桶
+            S(new THREE.BoxGeometry(1.6, 1.0, 1.2), M(0xA1887F), 2.8, Y + 0.5, 6.3);
+            const sr = S(new THREE.ConeGeometry(1.3, 0.7, 4), M(0xB23A2E, 0.6), 2.8, Y + 1.35, 6.3); sr.rotation.y = Math.PI / 4;
+            S(new THREE.BoxGeometry(0.4, 0.72, 0.04), M(0x5D4037), 2.8, Y + 0.36, 6.92);
+            S(new THREE.CylinderGeometry(0.32, 0.32, 0.6, 14), M(0x546E7A, 0.5), 4.4, Y + 0.3, 5.9);
+            // 招牌
+            const c = document.createElement('canvas'); c.width = 512; c.height = 160;
+            const x = c.getContext('2d');
+            x.fillStyle = '#2E7D32'; x.fillRect(0, 0, 512, 160);
+            x.strokeStyle = '#FFEB3B'; x.lineWidth = 8; x.strokeRect(8, 8, 496, 144);
+            x.fillStyle = '#FFFFFF'; x.font = 'bold 84px "Noto Sans TC", sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle';
+            x.fillText('開心農場', 256, 84);
+            [-1.1, 1.1].forEach(dx => S(new THREE.CylinderGeometry(0.05, 0.05, 1.5, 8), wood, -2.6 + dx, Y + 0.75, -6.5));
+            const sign = new THREE.Mesh(new THREE.PlaneGeometry(2.4, 0.75), new THREE.MeshStandardMaterial({ map: makeTex(c), roughness: 0.6 }));
+            sign.position.set(-2.6, Y + 1.25, -6.45); group.add(sign);
+        }
+
+        // =============== 警衛人物 ===============
+        function makeSecurityGuard(node, allowed) {
+            const c = new Character(node);
+            c.group.children.filter(o => o.geometry && o.geometry.parameters && o.geometry.parameters.width === 0.26).forEach(o => c.group.remove(o));
+            const M = (col, r = 0.6) => new THREE.MeshStandardMaterial({ color: col, roughness: r });
+            const navy = M(0x1C2E4A), black = M(0x1B1B1B), gold = new THREE.MeshStandardMaterial({ color: 0xFFC107, metalness: 0.6, roughness: 0.3 });
+            const S = (geo, m) => { const o = new THREE.Mesh(geo, m); o.castShadow = true; return o; };
+            c.body.material = navy;
+            c.leftArm.children[0].material = navy; c.rightArm.children[0].material = navy;
+            c.leftLeg.children[0].material = black; c.rightLeg.children[0].material = black;
+            c.head.children[1].material = black;
+            const vest = S(new THREE.CylinderGeometry(0.2, 0.225, 0.3, 14), new THREE.MeshStandardMaterial({ color: 0xC6FF00, emissive: 0x4A6600, emissiveIntensity: 0.35, roughness: 0.5 }));
+            vest.position.y = 0.72; c.group.add(vest);
+            const stripe = S(new THREE.CylinderGeometry(0.226, 0.226, 0.035, 14), M(0xFFFFFF, 0.4)); stripe.position.y = 0.72; c.group.add(stripe);
+            const belt = S(new THREE.CylinderGeometry(0.205, 0.205, 0.05, 14), black); belt.position.y = 0.47; c.group.add(belt);
+            const buckle = S(new THREE.BoxGeometry(0.06, 0.05, 0.02), gold); buckle.position.set(0, 0.47, 0.205); c.group.add(buckle);
+            const badge = S(new THREE.BoxGeometry(0.05, 0.06, 0.02), gold); badge.position.set(-0.1, 0.82, 0.2); c.group.add(badge);
+            const dome = S(new THREE.SphereGeometry(0.225, 16, 10, 0, Math.PI * 2, 0, Math.PI / 2), navy); dome.position.y = 0.05; dome.rotation.x = -0.15; c.head.add(dome);
+            const brim = S(new THREE.BoxGeometry(0.3, 0.02, 0.15), navy); brim.position.set(0, 0.07, 0.2); c.head.add(brim);
+            const cb = S(new THREE.SphereGeometry(0.03, 8, 8), gold); cb.position.set(0, 0.13, 0.215); c.head.add(cb);
+            c.group.scale.setScalar(1.22);
+            c.allowed = allowed; c.speed = 0.9; c.latBase = 0; c.isGuard = true;
+            c.pickNext(); c.group.position.copy(c.posAt(0));
+            return c;
+        }
 
         // --- Road helpers ---
         function addRoad(g, ax, az, bx, bz, w) {
-            const dx = bx - ax, dz = bz - az, len = Math.hypot(dx, dz);
+            const rc = Math.cos(g.rotation.y), rs = Math.sin(g.rotation.y);
+            const toL = (X, Z) => { const dx = X - g.position.x, dz = Z - g.position.z; return [dx * rc - dz * rs, dx * rs + dz * rc]; };
+            const A = toL(ax, az), Bp = toL(bx, bz);
+            const dx = Bp[0] - A[0], dz = Bp[1] - A[1], len = Math.hypot(dx, dz);
             if (len < 0.01) return;
             const mk = (ww, hh, col, y) => {
                 const m = new THREE.Mesh(new THREE.BoxGeometry(ww, hh, len), new THREE.MeshStandardMaterial({ color: col, roughness: 0.85 }));
-                m.position.set((ax + bx) / 2 - g.position.x, y, (az + bz) / 2 - g.position.z);
+                m.position.set((A[0] + Bp[0]) / 2, y, (A[1] + Bp[1]) / 2);
                 m.rotation.y = Math.atan2(dx, dz); m.receiveShadow = true; g.add(m);
             };
             mk(w + 0.28, 0.04, 0xB9AA92, 0.775);
             mk(w, 0.05, 0xDDD2BE, 0.785);
         }
         function addDisc(g, x, z, r) {
+            const rc = Math.cos(g.rotation.y), rs = Math.sin(g.rotation.y);
+            const dx = x - g.position.x, dz = z - g.position.z, lx = dx * rc - dz * rs, lz = dx * rs + dz * rc;
             const mk = (rr, col, y, h) => {
                 const m = new THREE.Mesh(new THREE.CylinderGeometry(rr, rr, h, 32), new THREE.MeshStandardMaterial({ color: col, roughness: 0.85 }));
-                m.position.set(x - g.position.x, y, z - g.position.z); m.receiveShadow = true; g.add(m);
+                m.position.set(lx, y, lz); m.receiveShadow = true; g.add(m);
             };
             mk(r + 0.14, 0xB9AA92, 0.775, 0.04);
             mk(r, 0xDDD2BE, 0.785, 0.05);
@@ -1583,9 +1949,174 @@
         }
 
         // --- Create Single Island Structure ---
+        // =============== 依平面圖建構建築 (海韻樓 / 舊南棟 / 幼兒園) ===============
+        // 平面座標：x 向右(東)、z 向下(南)，單位同場景；各棟生成後再依島嶼方位旋轉。
+        // spec: { floors, rooms[{x0,x1,z0,z1,door}], stairs[{...,open}], corridors[{...}], links[{...}], solarRoofs[...] }
+        function createPlanBuilding(spec) {
+            const g = new THREE.Group();
+            const fh = 1.8, F = spec.floors, cf = Math.min(F, 2), H = F * fh;
+            const M = (c, r = 0.55) => new THREE.MeshStandardMaterial({ color: c, roughness: r });
+            const wallMat = M(spec.wall || 0xF5F5F5), bandMat = M(0xE3DAC9, 0.6), frameMat = M(0xFFFFFF, 0.5), roofMat = M(spec.roof || 0x1976D2, 0.5);
+            const slabMat = M(0xD7CCC8, 0.8), corrRoofMat = M(0x1565C0, 0.5), pilMat = M(0xECEFF1, 0.5), doorMat = M(0x5D4037, 0.7), steel = M(0x78909C, 0.45), stepMat = M(0xB0BEC5, 0.6);
+            const glass = getGlassMat(), railGlass = getRailMats().glass;
+            const B = (w, h, d) => new THREE.BoxGeometry(w, h, d);
+            const S = (geo, m, x, y, z, parent) => { const o = new THREE.Mesh(geo, m); o.position.set(x, y, z); o.castShadow = true; o.receiveShadow = true; (parent || g).add(o); return o; };
+            const rooms = spec.rooms || [], stairs = spec.stairs || [], corrs = spec.corridors || [], links = spec.links || [];
+            const inside = (x, z, list) => list.some(r => x > r.x0 + 0.02 && x < r.x1 - 0.02 && z > r.z0 + 0.02 && z < r.z1 - 0.02);
+            const kindAt = (x, z) => (inside(x, z, rooms) || inside(x, z, stairs)) ? 'block' : inside(x, z, corrs) ? 'corr' : inside(x, z, links) ? 'link' : 'out';
+            const sideGeom = (r, n) => n[0] === 0
+                ? { len: r.x1 - r.x0, pt: t => [r.x0 + t, n[1] < 0 ? r.z0 : r.z1] }
+                : { len: r.z1 - r.z0, pt: t => [n[0] < 0 ? r.x0 : r.x1, r.z0 + t] };
+            const kindOfSide = (r, n, t) => { const p = sideGeom(r, n).pt(t); return kindAt(p[0] + n[0] * 0.2, p[1] + n[1] * 0.2); };
+            const DIRS = [[0, -1], [0, 1], [-1, 0], [1, 0]];
+            const lvl = f => f === 0 ? 0.3 : f * fh;
+
+            const addWindow = (x, z, n, y, sc) => {
+                const w = new THREE.Group();
+                w.add(new THREE.Mesh(B(0.98 * sc, 0.98, 0.06), frameMat));
+                w.add(new THREE.Mesh(B(0.82 * sc, 0.82, 0.09), glass));
+                const sill = new THREE.Mesh(B(1.1 * sc, 0.07, 0.18), frameMat); sill.position.y = -0.52; w.add(sill);
+                w.position.set(x + n[0] * 0.02, y, z + n[1] * 0.02); w.rotation.y = Math.atan2(n[0], n[1]); g.add(w);
+            };
+            const addDoor = (x, z, n, y) => {
+                const d = new THREE.Mesh(B(0.8, 1.2, 0.07), doorMat);
+                d.position.set(x + n[0] * 0.04, y, z + n[1] * 0.04); d.rotation.y = Math.atan2(n[0], n[1]); d.castShadow = true; g.add(d);
+            };
+
+            // ---- 教室 ----
+            rooms.forEach(r => {
+                const w = r.x1 - r.x0, d = r.z1 - r.z0, cx = (r.x0 + r.x1) / 2, cz = (r.z0 + r.z1) / 2;
+                S(B(w + 0.3, 0.3, d + 0.3), bandMat, cx, 0.15, cz);
+                for (let f = 0; f < F; f++) {
+                    S(B(w, fh, d), wallMat, cx, f * fh + fh / 2, cz);
+                    if (f > 0) S(B(w + 0.2, 0.14, d + 0.2), bandMat, cx, f * fh, cz);
+                }
+                S(B(w + 0.3, 0.26, d + 0.3), roofMat, cx, H + 0.13, cz);
+                const kinds = DIRS.map(n => kindOfSide(r, n, sideGeom(r, n).len / 2));
+                let doorN = r.door || null;
+                if (!doorN) { const i = kinds.indexOf('corr'); if (i >= 0) doorN = DIRS[i]; }
+                DIRS.forEach((n, i) => {
+                    if (kinds[i] === 'block') return;
+                    const sg = sideGeom(r, n), isDoorSide = doorN && doorN[0] === n[0] && doorN[1] === n[1];
+                    for (let f = 0; f < F; f++) {
+                        const wy = f * fh + fh / 2 + 0.1;
+                        if (isDoorSide) {
+                            const p1 = sg.pt(sg.len * 0.27), p2 = sg.pt(sg.len * 0.73), sc = Math.max(0.55, Math.min(1, sg.len * 0.38 / 0.98));
+                            if (f < cf) addDoor(p1[0], p1[1], n, (f === 0 ? 0.3 : f * fh) + 0.7); else addWindow(p1[0], p1[1], n, wy, sc);
+                            addWindow(p2[0], p2[1], n, wy, sc);
+                        } else {
+                            const k = Math.max(1, Math.floor(sg.len / 1.6)), sc = Math.min(1, (sg.len / k) * 0.7 / 0.98);
+                            for (let j = 0; j < k; j++) { const p = sg.pt(sg.len * (j + 0.5) / k); addWindow(p[0], p[1], n, wy, sc); }
+                        }
+                    }
+                });
+            });
+
+            // ---- 樓梯間 (玻璃牆 + 折返梯) ----
+            stairs.forEach(s => {
+                const w = s.x1 - s.x0, d = s.z1 - s.z0, cx = (s.x0 + s.x1) / 2, cz = (s.z0 + s.z1) / 2;
+                S(B(w + 0.3, 0.3, d + 0.3), bandMat, cx, 0.15, cz);
+                S(B(w + 0.3, 0.26, d + 0.3), roofMat, cx, H + 0.13, cz);
+                const od = s.open, alongZ = od[0] === 0, Ld = alongZ ? d : w, Wd = alongZ ? w : d;
+                const sg = new THREE.Group(); sg.position.set(cx, 0, cz); sg.rotation.y = Math.atan2(od[0], od[1]); g.add(sg);   // 局部 +z = 開口(走廊)方向
+                S(B(Wd - 0.1, H, 0.05), railGlass, 0, H / 2, -Ld / 2 + 0.05, sg).castShadow = false;
+                [-1, 1].forEach(sx => S(B(0.05, H, Ld - 0.1), railGlass, sx * (Wd / 2 - 0.05), H / 2, 0, sg).castShadow = false);
+                [-1, 1].forEach(sx => [-1, 1].forEach(sz => S(new THREE.CylinderGeometry(0.07, 0.08, H, 8), steel, sx * (Wd / 2 - 0.06), H / 2, sz * (Ld / 2 - 0.06), sg)));
+                for (let f = 0; f < F - 1; f++) {
+                    const y0 = lvl(f), y1 = lvl(f + 1), half = (y1 - y0) / 2, rs = half / 6;
+                    const LD = Math.min(0.8, Ld * 0.28), fl = Ld - LD - 0.1, sd = fl / 6, sw = Wd / 2 - 0.12;
+                    for (let i = 0; i < 6; i++) S(B(sw, 0.07, sd), stepMat, -Wd / 4, y0 + rs * (i + 1) - 0.035, Ld / 2 - sd * (i + 0.5), sg);
+                    S(B(Wd - 0.14, 0.1, LD), slabMat, 0, y0 + half - 0.05, -Ld / 2 + LD / 2 + 0.05, sg);
+                    for (let i = 0; i < 6; i++) S(B(sw, 0.07, sd), stepMat, Wd / 4, y0 + half + rs * (i + 1) - 0.035, -Ld / 2 + LD + sd * (i + 0.5), sg);
+                }
+            });
+
+            // ---- 教室外走廊 (1~2 樓，有屋頂；2 樓設綠色欄杆 + 透明強化玻璃矮牆) ----
+            corrs.forEach(c => {
+                const w = c.x1 - c.x0, d = c.z1 - c.z0, cx = (c.x0 + c.x1) / 2, cz = (c.z0 + c.z1) / 2;
+                S(B(w, 0.29, d), slabMat, cx, 0.145, cz);
+                for (let f = 1; f < cf; f++) S(B(w, 0.16, d), slabMat, cx, f * fh - 0.08, cz);
+                S(B(w + 0.2, 0.14, d + 0.2), corrRoofMat, cx, cf * fh + 0.07, cz);
+            });
+            const ph = cf * fh - 0.3;
+            corrs.forEach(c => DIRS.forEach(n => {
+                const sg = sideGeom(c, n), N = Math.max(1, Math.round(sg.len / 0.2)), runs = [];
+                let run = null;
+                for (let i = 0; i < N; i++) {
+                    const t = (i + 0.5) * sg.len / N, p = sg.pt(t), k = kindAt(p[0] + n[0] * 0.15, p[1] + n[1] * 0.15);
+                    if (k === 'out' || k === 'link') {
+                        if (run && run.k === k) run.t1 = (i + 1) * sg.len / N;
+                        else { run = { k, t0: i * sg.len / N, t1: (i + 1) * sg.len / N }; runs.push(run); }
+                    } else run = null;
+                }
+                runs.forEach(rn => {
+                    if (rn.t1 - rn.t0 < 0.3) return;
+                    const a = sg.pt(rn.t0), b = sg.pt(rn.t1), ia = [a[0] - n[0] * 0.1, a[1] - n[1] * 0.1], ib = [b[0] - n[0] * 0.1, b[1] - n[1] * 0.1];
+                    if (rn.k === 'out') {   // 走廊外緣立柱 (連通走道入口處不設柱)
+                        const m = Math.max(1, Math.round((rn.t1 - rn.t0) / 2.0));
+                        for (let i = 0; i <= m; i++) S(new THREE.CylinderGeometry(0.07, 0.08, ph, 8), pilMat, ia[0] + (ib[0] - ia[0]) * i / m, 0.3 + ph / 2, ia[1] + (ib[1] - ia[1]) * i / m);
+                    }
+                    for (let f = 1; f < cf; f++) addRailing(g, ia[0], ia[1], ib[0], ib[1], f * fh);
+                });
+            }));
+
+            // ---- 太陽能光電斜屋頂 ----
+            (spec.solarRoofs || []).forEach(sr => {
+                const rg = new THREE.Group(); rg.position.set(sr.cx, 0, sr.cz); rg.rotation.y = Math.atan2(sr.dir[0], sr.dir[1]);
+                addSolarShedRoof(rg, sr.len, sr.depth, H + 0.3); g.add(rg);
+            });
+            return g;
+        }
+
+        const planRect = (P, x0, y0, x1, y1, extra) => { const a = P(x0, y0), b = P(x1, y1); return Object.assign({ x0: a[0], z0: a[1], x1: b[0], z1: b[1] }, extra || {}); };
+
+        // ---- 海韻樓 (依「海韻樓」圖：「」」型，右側縱向棟 4 間教室 + 樓梯，下方橫向棟 1 間大教室 + 樓梯) ----
+        const HY = { K: 0.024, CX: 602, CY: 358 };
+        HY.P = (px, py) => [(px - HY.CX) * HY.K, (py - HY.CY) * HY.K];                       // 圖面像素 -> 建築平面座標
+        HY.L = (px, py) => { const q = HY.P(px, py), c = Math.cos(Math.PI / 6), s = Math.sin(Math.PI / 6); return [q[0] * c + q[1] * s, -q[0] * s + q[1] * c]; };   // -> 島嶼局部座標 (含建築逆時針 30 度)
+        function createHaiyunBuilding() {
+            const R = (a, b, c, d, e) => planRect(HY.P, a, b, c, d, e);
+            return createPlanBuilding({
+                floors: 2,
+                rooms: [R(695, 87, 793, 187, { door: [-1, 0] }), R(695, 255, 793, 355, { door: [-1, 0] }), R(695, 355, 793, 455, { door: [-1, 0] }), R(695, 455, 793, 555, { door: [-1, 0] }), R(441, 605, 695, 705, { door: [0, -1] })],
+                stairs: [R(695, 187, 793, 255, { open: [-1, 0] }), R(695, 605, 793, 705, { open: [0, -1] })],
+                corridors: [R(647, 87, 695, 555), R(441, 555, 793, 605)]
+            });
+        }
+
+        // ---- 舊南棟 (依「舊南棟」圖：縱向棟 7 間教室 + 上端樓梯；下方橫向棟 2 間教室 + 樓梯；走廊在東/北內側) ----
+        const OS = { K: 0.0245, CX: 595, CY: 356 };
+        OS.P = (px, py) => [(px - OS.CX) * OS.K, (py - OS.CY) * OS.K];
+        function createOldSouthBuilding() {
+            const R = (a, b, c, d, e) => planRect(OS.P, a, b, c, d, e);
+            const rooms = [];
+            for (let i = 0; i < 7; i++) rooms.push(R(485, 58 + i * 72.86, 583, 58 + (i + 1) * 72.86, { door: [1, 0] }));
+            rooms.push(R(485, 608, 559, 704, { door: [0, -1] }), R(559, 608, 633, 704, { door: [0, -1] }));
+            const vc = OS.P((485 + 583) / 2, (58 + 568) / 2), hc = OS.P(559, 656);
+            return createPlanBuilding({
+                floors: 2, rooms,
+                stairs: [R(485, 8, 583, 58, { open: [1, 0] }), R(633, 608, 705, 704, { open: [0, -1] })],
+                corridors: [R(583, 8, 633, 568), R(485, 568, 705, 608)],
+                solarRoofs: [{ cx: vc[0], cz: vc[1], len: 510 * OS.K, depth: 98 * OS.K, dir: [1, 0] }, { cx: hc[0], cz: hc[1], len: 148 * OS.K, depth: 96 * OS.K, dir: [0, -1] }]
+            });
+        }
+
+        // ---- 幼兒園 (依「幼兒園」圖：一字型 4 間教室 + 東端樓梯，前方 1-2 樓走廊，走廊中央接屋頂式裸空連通走道) ----
+        function createKindergartenBuilding() {
+            const rw = 3.02, x0 = -6.87, rooms = [];
+            for (let i = 0; i < 4; i++) rooms.push({ x0: x0 + i * rw, x1: x0 + (i + 1) * rw, z0: -2.5, z1: 1.5, door: [0, -1] });
+            return createPlanBuilding({
+                floors: 3, rooms,
+                stairs: [{ x0: x0 + 4 * rw, x1: 6.87, z0: -2.5, z1: 1.5, open: [0, -1] }],
+                corridors: [{ x0: -6.87, x1: 6.87, z0: -3.9, z1: -2.5 }],
+                links: [{ x0: -1.2, x1: 1.2, z0: -9.5, z1: -3.9 }]
+            });
+        }
+
         function createSingleIsland(data, x, y, z) {
             const group = new THREE.Group();
             group.position.set(x, y, z);
+            group.rotation.y = data.rotY || 0;   // 島嶼旋轉 (逆時針，俯視)
             
             group.userData = {
                 id: data.id,
@@ -1655,56 +2186,23 @@
 
             if (data.isMain) {
                 core = new THREE.Group(); core.scale.setScalar(1.25); core.position.y = -0.1875; group.add(core);   // 主島建築群整體放大，底部仍貼齊草地
-                const mainBuildingGroup = new THREE.Group();
+                const complex = createMainComplex();
+                complex.position.y = 0.75;
+                core.add(complex);
+                addBubblePlaza(core, 0, -2.4, 14.4, 9.2);
 
-                const northBuilding = createMultiStoryBuilding(3, 12, 7, 0xFAFAFA, 0xC62828, true, true);
-                northBuilding.position.set(0, 0.75, -8.5);
-                mainBuildingGroup.add(northBuilding);
-
-                const southBuilding = createMultiStoryBuilding(3, 12, 7, 0xFAFAFA, 0x1565C0, true, true);
-                southBuilding.position.set(0, 0.75, 8.5);
-                southBuilding.rotation.y = Math.PI;
-                mainBuildingGroup.add(southBuilding);
-
-                const frontEntranceGroup = new THREE.Group();
-                const porticoMat = new THREE.MeshStandardMaterial({ color: 0x1565C0, flatShading: true });
-                const porticoRoof = new THREE.Mesh(new THREE.BoxGeometry(5.2, 0.4, 2.2), porticoMat);
-                porticoRoof.position.set(0, 2.4, 0.5);
-                porticoRoof.castShadow = true;
-                frontEntranceGroup.add(porticoRoof);
-
-                const pillarMat = new THREE.MeshStandardMaterial({ color: 0xE0E0E0 });
-                const pillar1 = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.18, 2.4), pillarMat);
-                pillar1.position.set(-2.1, 1.2, 1.2);
-                frontEntranceGroup.add(pillar1);
-                const pillar2 = pillar1.clone();
-                pillar2.position.x = 2.1;
-                frontEntranceGroup.add(pillar2);
-
-                const mainDoor = createDoorMesh(2.8, 2.0);
-                mainDoor.position.set(0, 0.75, 0);
-                frontEntranceGroup.add(mainDoor);
-
-                const signBg = new THREE.Mesh(
-                    new THREE.BoxGeometry(3.2, 0.6, 0.15),
-                    new THREE.MeshStandardMaterial({ color: 0x0D47A1 })
-                );
-                signBg.position.set(0, 2.85, 0.2);
-                frontEntranceGroup.add(signBg);
-
-                // 正門門廊定位於面向警衛室方向 (+Z 軸方向)
-                frontEntranceGroup.position.set(0, 0, 6.6);
-
-                
-
-                // 建築物主體維持原本旋轉角度不變
-                mainBuildingGroup.rotation.y = -Math.PI / 2;
-                core.add(mainBuildingGroup);
-                addBubblePlaza(core);
-                addMainCorridors(core);
-
-                // 將大門與鯉魚圓形水池依序放置於面對警衛室的前方廣場
-                core.add(frontEntranceGroup);
+                // 正門：位於 1-3 樓連通走道前方 (朝向警衛室 +Z)，走道 1 樓為穿堂式大門
+                const gate = new THREE.Group(); gate.position.set(0, 0.75, 4.4);
+                const canopy = new THREE.Mesh(new THREE.BoxGeometry(5.2, 0.18, 1.7), new THREE.MeshStandardMaterial({ color: 0x1565C0, roughness: 0.5 }));
+                canopy.position.set(0, 1.91, 0.85); canopy.castShadow = true; gate.add(canopy);
+                [-2.5, 2.5].forEach(px => {
+                    const p = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.11, 1.82, 10), new THREE.MeshStandardMaterial({ color: 0xE0E0E0 }));
+                    p.position.set(px, 0.91, 1.6); p.castShadow = true; gate.add(p);
+                });
+                const gateSign = createTextSign('賜福樓', 3.4, 0.7, '#0D47A1', '#FFFFFF');
+                gateSign.position.set(0, 2.4, 0.14); gate.add(gateSign);
+                core.add(gate);
+                addRoad(core, 0, 5.9, 0, 7.6, 2.4);
 
                 const carpPoolGroup = createCarpPoolSculpture();
                 carpPoolGroup.position.set(0, 0.75, 9.7);
@@ -1712,16 +2210,23 @@
                 addDisc(core, 0, 9.7, 2.1);
                 core.add(carpPoolGroup);
 
-                // 水池右側涼亭 (面向前方看的右側 = +x)
+                // 水池旁涼亭：由水池右側往「幼兒園與開心農場之間」方向外移 (位於環形道路外側)
                 const poolGazebo = createGazebo();
-                poolGazebo.position.set(5.8, 0.75, 8.2); poolGazebo.scale.setScalar(0.82); poolGazebo.rotation.y = 0.5;
-                core.add(poolGazebo);
-                addDisc(core, 5.8, 8.2, 1.9);
-                addRoad(core, 2.0, 9.3, 4.4, 8.5, 1.0);
+                poolGazebo.position.set(17.5, 0.75, 13.7); poolGazebo.scale.setScalar(1.0); poolGazebo.rotation.y = -2.24;
+                group.add(poolGazebo);
+                addDisc(group, 17.5, 13.7, 2.0);
+                addRoad(group, 13.9, 11.3, 16.0, 12.7, 1.1);
+
+                // 新增涼亭：位於主島內「通往視聽教室」與「通往網球場」兩條道路之間
+                const midGazebo = createGazebo();
+                midGazebo.position.set(-7.26, 0.75, -22.35); midGazebo.scale.setScalar(0.9); midGazebo.rotation.y = 0.314;
+                group.add(midGazebo);
+                addDisc(group, -7.26, -22.35, 1.9);
+                addRoad(group, -5.9, -18.1, -6.9, -21.0, 1.0);
 
                 // 賜福樓左右兩側兒童遊樂器材區
-                [-23.6, 23.6].forEach(px => {
-                    const pa = createPlayArea(); pa.position.set(px, 0.75, -4.2); pa.rotation.y = 0;
+                [-23.8, 23.8].forEach(px => {
+                    const pa = createPlayArea(); pa.position.set(px, 0.75, 0); pa.rotation.y = 0;
                     group.add(pa);
                 });
 
@@ -1744,48 +2249,77 @@
                 trackGazebo.position.set(-3.3, 0.75, 8.2); trackGazebo.scale.setScalar(0.85);
                 group.add(trackGazebo);
 
+            } else if (data.isFarm) {
+                addFarm(group);
             } else if (data.id === 'haiyun') {
-                // 「」」型：右側縱向棟 + 下方(南側)向左延伸的橫向棟
-                const wingA = createMultiStoryBuilding(2, 9, 3.6, 0xF5F5F5, 0x1976D2, false);
-                const hyG = new THREE.Group(); hyG.rotation.y = Math.PI / 6; group.add(hyG);   // 逆時針轉 30 度 (俯視)
-                wingA.position.set(2.8, 0.75, 0); wingA.rotation.y = Math.PI / 2; hyG.add(wingA);
-                const wingB = createMultiStoryBuilding(2, 6, 3.6, 0xF5F5F5, 0x1976D2, true);
-                wingB.position.set(-2.0, 0.75, 2.7); hyG.add(wingB);
+                // 依「海韻樓」圖：「」」型；建築整體維持原先逆時針 30 度的設定
+                const hyG = new THREE.Group(); hyG.rotation.y = Math.PI / 6; group.add(hyG);
+                const hb = createHaiyunBuilding(); hb.position.y = 0.75; hyG.add(hb);
+
+                // 烏魚子廣場 (縱向棟上方，連鎖磚地板)
+                const plz = HY.P(672, 48);
+                addRoePlaza(hyG, plz[0], plz[1], Math.PI / 2, 2.0, 5.8);
+                const plazaSign = createTextSign('烏魚子廣場', 2.4, 0.62, '#8A4B14', '#FFE9B8');
+                const sgp = HY.P(585, 104);
+                plazaSign.position.set(sgp[0], 1.55, sgp[1]); hyG.add(plazaSign);
+                [-0.9, 0.9].forEach(dx => {
+                    const post = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 1.2, 8), new THREE.MeshStandardMaterial({ color: 0x6D4C41, roughness: 0.8 }));
+                    post.position.set(sgp[0] + dx, 0.75 + 0.6, sgp[1]); post.castShadow = true; hyG.add(post);
+                });
+                [[640, 30], [705, 30]].forEach(([px, py]) => {
+                    const bp = HY.P(px, py);
+                    const bench = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.1, 0.38), new THREE.MeshStandardMaterial({ color: 0x8D6E63, roughness: 0.8 }));
+                    bench.position.set(bp[0], 1.05, bp[1]); bench.castShadow = true; hyG.add(bench);
+                    [-0.45, 0.45].forEach(l => { const leg = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.3, 0.3), new THREE.MeshStandardMaterial({ color: 0x5D4037 })); leg.position.set(bp[0] + l, 0.9, bp[1]); hyG.add(leg); });
+                });
+
+                // 兒童遊樂器材區 (圖中走廊內側圓形區域)
+                const pc = HY.P(509, 247);
+                const padMat = new THREE.MeshStandardMaterial({ color: 0xCF8A55, roughness: 0.95 });
+                const pad = new THREE.Mesh(new THREE.CylinderGeometry(2.5, 2.5, 0.05, 40), padMat);
+                pad.position.set(pc[0], 0.78, pc[1]); pad.receiveShadow = true; hyG.add(pad);
+                const hpa = createPlayArea(); hpa.scale.setScalar(0.6); hpa.position.set(pc[0], 0.8, pc[1]); hyG.add(hpa);
             } else if (data.id === 'guanghui') {
                 const hall = createHallBuilding(Math.min(r * 1.2, 8.4), 5.0);
                 hall.position.y = 0.75; hall.rotation.y = angleToMain; group.add(hall);
+            } else if (data.id === 'old_south') {
+                // 依「舊南棟」圖：L 型；走廊(內側)朝向主島嶼
+                const osb = createOldSouthBuilding();
+                osb.position.y = 0.75; osb.rotation.y = angleToMain - Math.PI / 2;
+                group.add(osb);
+            } else if (data.id === 'kindergarten') {
+                // 依「幼兒園」圖：一字型 4 間教室 + 東端樓梯，前方走廊中央接屋頂式裸空連通走道
+                const kg = new THREE.Group(); kg.position.set(0, 0.75, 0); kg.rotation.y = angleToMain;   // 局部 +z 朝向橋梁
+                const kb = createKindergartenBuilding(); kb.rotation.y = Math.PI; kg.add(kb);
+                addCoveredWalkway(kg, 0, 4.0, r * 0.85, 2.4);
+                [-1, 1].forEach(sx => addRailing(kg, sx * 1.1, 4.0, sx * 1.1, r * 0.85, 0.06));   // 走道兩側欄杆 (無圍牆)
+                const pa = createPlayArea(); pa.scale.setScalar(0.75); pa.rotation.y = -Math.PI / 2; pa.position.set(5.0, 0, 5.8);   // 遊樂器材區：位置/大小/方向維持不變
+                kg.add(pa);
+                group.add(kg);
             } else {
                 const floors = data.floors || 1;
                 const bWidth = Math.min(r * 1.2, 8);
                 const bDepth = Math.min(r * 0.8, 4.6);
-                const building = createMultiStoryBuilding(floors, bWidth, bDepth, 0xF5F5F5, 0x1976D2, true, data.id === 'old_south');
+                const building = createMultiStoryBuilding(floors, bWidth, bDepth, 0xF5F5F5, 0x1976D2, true, false, null);
                 building.position.y = 0.75;
                 building.rotation.y = angleToMain;
                 group.add(building);
-
-                if (data.id === 'kindergarten') {
-                    const kg = new THREE.Group(); kg.position.set(0, 0.75, 0); kg.rotation.y = angleToMain;   // 局部 +z 朝向橋梁
-                    addCoveredWalkway(kg, 0, 3.0, r * 0.85, 2.4);
-                    const pa = createPlayArea(); pa.scale.setScalar(0.85); pa.rotation.y = -Math.PI / 2; pa.position.set(4.6, 0, 5.0);
-                    kg.add(pa);
-                    group.add(kg);
-                }
             }
 
             if (data.isMain) {
-                [[-6.5, 8.6], [-6.5, -8.8], [6.5, -8.8], [0, -9.2], [-9.0, 10], [9.0, -10]].forEach(p => {
+                [[-6.5, 8.6], [-6.5, -8.8], [-3.5, -9.2], [0, -9.2], [-9.0, 10], [13.8, -9.6]].forEach(p => {
                     const t = createTree(); t.position.set(p[0], 0.75, p[1]); t.scale.setScalar(0.9); core.add(t);
                 });
-            } else {
+            } else if (!data.isFarm) {
                 const axis = Math.atan2(-z, -x);
                 const dA = (a, b) => Math.abs(Math.atan2(Math.sin(a - b), Math.cos(a - b)));
                 const numTrees = Math.floor(Math.random() * 2) + 3;
                 for (let i = 0; i < numTrees; i++) {
                     let angle, tries = 0;
                     do { angle = Math.random() * Math.PI * 2; tries++; }
-                    while (tries < 40 && (dA(angle, axis) < (data.id === 'kindergarten' ? 1.4 : 0.7) || (data.isTennis && Math.abs(Math.sin(angle)) < 0.6) || (data.isPlayground && dA(angle, 1.95) < 0.55) || (data.isPlayground && Math.abs(Math.atan2(Math.sin(angle + Math.PI / 2), Math.cos(angle + Math.PI / 2))) < 0.7)));
+                    while (tries < 40 && (dA(angle - (data.rotY || 0), axis) < (data.id === 'kindergarten' ? 1.4 : 0.7) || (data.isTennis && Math.abs(Math.sin(angle)) < 0.6) || (data.isPlayground && dA(angle, 1.95) < 0.55) || (data.id === 'haiyun' && dA(angle, Math.atan2(HY.L(672, 48)[1], HY.L(672, 48)[0])) < 0.7) || (data.linkAngles && data.linkAngles.some(a => dA(angle - (data.rotY || 0), a) < 0.8)) || (data.isPlayground && Math.abs(Math.atan2(Math.sin(angle + Math.PI / 2), Math.cos(angle + Math.PI / 2))) < 0.7)));
                     const tree = createTree();
-                    const rad = ((data.isPlayground ? 0.9 : data.id === 'haiyun' ? 0.92 : 0.8) + Math.random() * 0.05) * r;
+                    const rad = ((data.isPlayground ? 0.9 : data.id === 'haiyun' ? 0.95 : data.id === 'old_south' ? 0.95 : 0.8) + Math.random() * 0.05) * r;
                     tree.position.set(Math.cos(angle) * rad, 0.75, Math.sin(angle) * rad);
                     tree.scale.setScalar(0.85 + Math.random() * 0.2);
                     group.add(tree);
@@ -1798,11 +2332,11 @@
         }
 
         // --- Wide Connecting Bridge ---
-        function createConnectingBridge(x1, y1, z1, x2, y2, z2, subRadius, subId) {
+        function createConnectingBridge(x1, y1, z1, x2, y2, z2, subRadius, subId, ov) {
             const g = new THREE.Group();
             const dirH = new THREE.Vector3(x2 - x1, 0, z2 - z1).normalize();
-            const pStart = new THREE.Vector3(x1 + dirH.x * MAIN_R, y1 + 0.7, z1 + dirH.z * MAIN_R);
-            const pEnd = new THREE.Vector3(x2 - dirH.x * subRadius * 0.85, y2 + 0.7, z2 - dirH.z * subRadius * 0.85);
+            const pStart = ov ? ov.pStart : new THREE.Vector3(x1 + dirH.x * MAIN_R, y1 + 0.7, z1 + dirH.z * MAIN_R);
+            const pEnd = ov ? ov.pEnd : new THREE.Vector3(x2 - dirH.x * subRadius * 0.85, y2 + 0.7, z2 - dirH.z * subRadius * 0.85);
             const len = pStart.distanceTo(pEnd), mid = pStart.clone().add(pEnd).multiplyScalar(0.5), W = 3.2;
             const dir = pEnd.clone().sub(pStart).normalize();
 
@@ -1858,7 +2392,14 @@
             });
 
             const subs = campusData.filter(d => !d.isMain), numSub = subs.length, orbit = 44;
-            const bridgeNodes = [], subNodes = {};
+            const bridgeNodes = [], subNodes = {}, infos = {}, guardPatrol = [];
+            const posOf = i => { const a = Math.PI / 2 + i / numSub * Math.PI * 2; return [Math.cos(a) * orbit, Math.sin(a) * orbit]; };
+            const idxOf = id => subs.findIndex(s => s.id === id);
+            {
+                const fp = posOf(idxOf('farm')), kp = posOf(idxOf('kitchen')), gp = posOf(idxOf('kindergarten'));
+                subs.find(s => s.id === 'kitchen').linkAngles = [Math.atan2(fp[1] - kp[1], fp[0] - kp[0])];
+                subs.find(s => s.id === 'kindergarten').linkAngles = [Math.atan2(fp[1] - gp[1], fp[0] - gp[0])];
+            }
             const addFoam = (g, r) => {
                 const m = new THREE.Mesh(new THREE.RingGeometry(r + 0.4, r + 1.6, 64), new THREE.MeshBasicMaterial({ color: 0xFFFFFF, transparent: true, opacity: 0.35, side: THREE.DoubleSide, depthWrite: false }));
                 m.rotation.x = -Math.PI / 2; m.position.set(g.position.x, -2.42, g.position.z); scene.add(m);
@@ -1871,47 +2412,59 @@
                 const x = Math.cos(angle) * orbit, z = Math.sin(angle) * orbit, y = Math.sin(index * 1.5) * 0.4;
                 const g = createSingleIsland(data, x, y, z);
                 addFoam(g, data.radius);
+                if (data.isFarm) {      // 開心農場：不連接主島，只以橋梁連接廚房與幼兒園
+                    const R0 = mkNode(x, 0, z, g), RE = mkNode(x + 5.7, 0, z, g), RW = mkNode(x - 5.7, 0, z, g);
+                    const P1 = mkNode(x + 5.4, 0, z - 5.6, g), P2 = mkNode(x - 5.7, 0, z + 5.0, g);
+                    link(RE, R0, 0.5); link(R0, RW, 0.5); link(RE, P1, 0.4); link(RW, P2, 0.4);
+                    addRoad(g, x - 5.7, z, x + 5.7, z, 1.6);
+                    addRoad(g, x + 5.7, z, x + 5.4, z - 5.6, 1.2);
+                    addRoad(g, x - 5.7, z, x - 5.7, z + 5.0, 1.2);
+                    infos.farm = { x, y, z, r: data.radius, g, P1, P2 };
+                    subNodes.farm = [R0, RE, RW, P1, P2];
+                    return;
+                }
                 createConnectingBridge(0, 0, 0, x, y, z, data.radius, data.id);
                 const bi = bridgesInfo[bridgesInfo.length - 1];
 
                 const rn = ring[Math.round(angle / (Math.PI * 2) * RN) % RN];
                 addDisc(mainG, rn.p.x, rn.p.z, 2.0);
-                let prev = rn;
+                let prev = rn; const chain = [rn];
                 {   // 主島內部道路：由環形道路通到主島邊緣，再接橋梁
                     const ex = bi.pStart.x - rn.p.x, ez = bi.pStart.z - rn.p.z, m = Math.max(1, Math.ceil(Math.hypot(ex, ez) / 2.5));
                     addRoad(mainG, rn.p.x, rn.p.z, bi.pStart.x, bi.pStart.z, 1.8);
                     for (let k = 1; k <= m; k++) {
                         const nd = mkNode(rn.p.x + ex * k / m, 0, rn.p.z + ez * k / m, mainG);
-                        link(prev, nd, 0.8); bridgeNodes.push(nd); prev = nd;
+                        link(prev, nd, 0.8); bridgeNodes.push(nd); chain.push(nd); prev = nd;
                     }
                 }
                 const n = Math.max(2, Math.ceil(bi.length / 2.5));
                 for (let k = 1; k < n; k++) {
                     const p = bi.pStart.clone().lerp(bi.pEnd, k / n);
                     const node = mkNode(p.x, p.y + 0.125, p.z, null);
-                    link(prev, node, 1.0); bridgeNodes.push(node); prev = node;
+                    link(prev, node, 1.0); bridgeNodes.push(node); chain.push(node); prev = node;
                 }
                 const endNode = mkNode(bi.pEnd.x, 0, bi.pEnd.z, g);
                 link(prev, endNode, 1.0);
 
                 const r = data.radius, court = data.isPlayground || data.isTennis;
+                const rc = Math.cos(data.rotY || 0), rs = Math.sin(data.rotY || 0);
+                const W = (ox, oz) => [x + ox * rc + oz * rs, z - ox * rs + oz * rc];     // 島嶼局部偏移 -> 世界座標 (含島嶼旋轉)
+                const nW = (ox, oz) => { const w = W(ox, oz); return mkNode(w[0], 0, w[1], g); };
                 const u = new THREE.Vector3(-x, 0, -z).normalize(), v = new THREE.Vector3(-u.z, 0, u.x);
                 const mine = [endNode];
                 addDisc(g, endNode.p.x, endNode.p.z, 1.2);
                 if (!court && data.id === 'haiyun') {
-                    const q1 = mkNode(x - 4.6, 0, z + 6.4, g), q2 = mkNode(x - 2.5, 0, z + 7.3, g);
-                    const p1 = mkNode(x + 0.4, 0, z + 6.7, g), p2 = mkNode(x + 6.0, 0, z + 3.45, g), p3 = mkNode(x + 5.9, 0, z - 2.2, g);
-                    link(endNode, q1, 0.45); link(q1, q2, 0.45); link(q2, p1, 0.45); link(p1, p2, 0.45); link(p2, p3, 0.45);
-                    addRoad(g, endNode.p.x, endNode.p.z, q1.p.x, q1.p.z, 1.2);
-                    addRoad(g, q1.p.x, q1.p.z, q2.p.x, q2.p.z, 1.2);
-                    addRoad(g, q2.p.x, q2.p.z, p1.p.x, p1.p.z, 1.2);
-                    addRoad(g, p1.p.x, p1.p.z, p2.p.x, p2.p.z, 1.2);
-                    addRoad(g, p2.p.x, p2.p.z, p3.p.x, p3.p.z, 1.2);
-                    mine.push(q1, q2, p1, p2, p3);
+                    const nH = (px, py) => { const q = HY.L(px, py); return nW(q[0], q[1]); };   // 海韻樓圖面座標 -> 路網節點
+                    const w1 = nH(400, 430), w2 = nH(385, 247), w3 = nH(420, 120), h1 = nH(520, 108), f1 = nH(600, 100), plz = nH(672, 48);
+                    const a1 = nH(470, 505), b1 = nH(600, 505), c1 = nH(610, 400), d1 = nH(618, 300), e1 = nH(620, 170);
+                    link(endNode, w1, 0.45); link(w1, a1, 0.45); link(a1, b1, 0.45); link(b1, c1, 0.45); link(c1, d1, 0.45); link(d1, e1, 0.45); link(e1, f1, 0.45);
+                    link(w1, w2, 0.45); link(w2, w3, 0.45); link(w3, h1, 0.45); link(h1, f1, 0.45); link(f1, plz, 0.45);
+                    [[endNode, w1], [w1, a1], [a1, b1], [b1, c1], [w1, w2], [w2, w3]].forEach(([p, q]) => addRoad(g, p.p.x, p.p.z, q.p.x, q.p.z, 1.2));
+                    mine.push(w1, w2, w3, h1, f1, plz, a1, b1, c1, d1, e1);
                 } else if (!court) {
                     const pp = new THREE.Vector3(x, 0, z).addScaledVector(u, r * 0.66);
                     const plaza = mkNode(pp.x, 0, pp.z, g);
-                    const lat = data.id === 'kindergarten' ? 0.8 : 1.9;
+                    const lat = data.id === 'kindergarten' ? 0.8 : data.id === 'old_south' ? 6.0 : 1.9;
                     const sl = mkNode(pp.x + v.x * lat, 0, pp.z + v.z * lat, g), sr = mkNode(pp.x - v.x * lat, 0, pp.z - v.z * lat, g);
                     link(endNode, plaza, 0.45); link(plaza, sl, 0.4); link(plaza, sr, 0.4);
                     addRoad(g, endNode.p.x, endNode.p.z, pp.x, pp.z, 1.6);
@@ -1919,7 +2472,7 @@
                     addDisc(g, pp.x, pp.z, 1.0);
                     mine.push(plaza, sl, sr);
                 } else if (data.isPlayground) {
-                    const L = (cx, cy) => [x + (cx / 512 - 0.5) * 17.6, z + (cy / 326 - 0.5) * 11.2];
+                    const L = (cx, cy) => W((cx / 512 - 0.5) * 17.6, (cy / 326 - 0.5) * 11.2);
                     const nd = (cx, cy) => { const p = L(cx, cy); return mkNode(p[0], 0, p[1], g); };
                     const X0 = 25, X1 = 487, Y0 = 25, Y1 = 301, RR = 81, pts0 = [];
                     [[X0 + RR, Y0 + RR, Math.PI, 1.5 * Math.PI], [X1 - RR, Y0 + RR, 1.5 * Math.PI, 2 * Math.PI], [X1 - RR, Y1 - RR, 0, 0.5 * Math.PI], [X0 + RR, Y1 - RR, 0.5 * Math.PI, Math.PI]].forEach(a => {
@@ -1945,26 +2498,61 @@
                     link(E, P1, 0.45); link(P1, PC, 0.45); link(PC, P4, 0.45); link(PC, P2, 0.45); link(PC, P3, 0.45);
                     link(near(P4.p, trk), P4, 0.5);
                     // 司令台前方步道
-                    const Pn = mkNode(x, 0, z - 5.9, g);
+                    const Pn = nW(0, -5.9);
                     link(near(Pn.p, trk), Pn, 0.4);
-                    addDisc(g, x, z - 6.0, 0.9);
+                    { const dp = W(0, -6.0); addDisc(g, dp[0], dp[1], 0.9); }
                     mine.push(...trk, E, C, N, S, P1, PC, P2, P3, P4, Pn);
                 } else {
                     // 兩座球場之間的走道
-                    const c = mkNode(x, 0, z, g), g1 = mkNode(x, 0, z + 5.0, g), g2 = mkNode(x, 0, z - 5.0, g);
+                    const c = mkNode(x, 0, z, g), g1 = nW(0, 5.0), g2 = nW(0, -5.0);
                     link(endNode, g1, 0.5); link(g1, c, 0.4); link(c, g2, 0.4);
-                    addRoad(g, endNode.p.x, endNode.p.z, x, z + 5.0, 1.2);
-                    addRoad(g, x, z + 5.0, x, z - 5.0, 0.8);
+                    addRoad(g, endNode.p.x, endNode.p.z, g1.p.x, g1.p.z, 1.2);
+                    addRoad(g, g1.p.x, g1.p.z, g2.p.x, g2.p.z, 0.8);
                     mine.push(c, g1, g2);
                 }
                 subNodes[data.id] = mine;
+                infos[data.id] = { x, y, z, r: data.radius, g, mine };
+                if (data.id === 'guard') guardPatrol.push(...chain, endNode, ...mine);
             });
+
+            // ---- 開心農場 <-> 廚房 / 幼兒園 的橋梁 ----
+            {
+                const loc = (inf, xl, zl) => { const th = Math.atan2(-inf.x, -inf.z); return [inf.x + xl * Math.cos(th) + zl * Math.sin(th), inf.z - xl * Math.sin(th) + zl * Math.cos(th)]; };
+                const bridgeBetween = (A, B) => {
+                    const dir = new THREE.Vector3(B.x - A.x, 0, B.z - A.z).normalize();
+                    const ps = new THREE.Vector3(A.x + dir.x * A.r * 0.85, A.y + 0.7, A.z + dir.z * A.r * 0.85);
+                    const pe = new THREE.Vector3(B.x - dir.x * B.r * 0.85, B.y + 0.7, B.z - dir.z * B.r * 0.85);
+                    createConnectingBridge(0, 0, 0, 0, 0, 0, 0, 'link', { pStart: ps, pEnd: pe });
+                    const bi = bridgesInfo[bridgesInfo.length - 1];
+                    const nA = mkNode(ps.x, 0, ps.z, A.g), nB = mkNode(pe.x, 0, pe.z, B.g);
+                    let prev = nA; const n = Math.max(2, Math.ceil(bi.length / 2.5));
+                    for (let k = 1; k < n; k++) { const p = ps.clone().lerp(pe, k / n); const nd = mkNode(p.x, p.y + 0.125, p.z, null); link(prev, nd, 1.0); bridgeNodes.push(nd); prev = nd; }
+                    link(prev, nB, 1.0);
+                    addDisc(A.g, nA.p.x, nA.p.z, 1.2); addDisc(B.g, nB.p.x, nB.p.z, 1.2);
+                    return { nA, nB };
+                };
+                const K = infos.kitchen, F = infos.farm, G = infos.kindergarten;
+                const r1 = bridgeBetween(K, F);
+                const wk = loc(K, 3.9, 3.4), Wk = mkNode(wk[0], 0, wk[1], K.g);
+                link(r1.nA, Wk, 0.45); link(Wk, K.mine[1], 0.45);
+                addRoad(K.g, r1.nA.p.x, r1.nA.p.z, wk[0], wk[1], 1.2); addRoad(K.g, wk[0], wk[1], K.mine[1].p.x, K.mine[1].p.z, 1.2);
+                K.mine.push(Wk, r1.nA);
+                link(r1.nB, F.P1, 0.45); addRoad(F.g, r1.nB.p.x, r1.nB.p.z, F.P1.p.x, F.P1.p.z, 1.2);
+                const r2 = bridgeBetween(F, G);
+                link(r2.nA, F.P2, 0.45); addRoad(F.g, r2.nA.p.x, r2.nA.p.z, F.P2.p.x, F.P2.p.z, 1.2);
+                const wg = loc(G, -6.8, 6.2), Wg = mkNode(wg[0], 0, wg[1], G.g);
+                link(r2.nB, Wg, 0.45); link(Wg, G.mine[1], 0.45);
+                addRoad(G.g, r2.nB.p.x, r2.nB.p.z, wg[0], wg[1], 1.2); addRoad(G.g, wg[0], wg[1], G.mine[1].p.x, G.mine[1].p.z, 1.2);
+                G.mine.push(Wg, r2.nB);
+                subNodes.farm.push(r1.nB, r2.nA);
+            }
 
             // 人物只出現在 道路 / 橋梁 / 島嶼步道 節點上，並沿路網行走
             const pick = arr => arr[Math.floor(Math.random() * arr.length)];
             for (let i = 0; i < 8; i++) characters.push(new Character(pick(ring)));
             Object.values(subNodes).forEach(arr => { for (let i = 0; i < 2; i++) characters.push(new Character(pick(arr))); });
             for (let i = 0; i < 12; i++) characters.push(new Character(pick(bridgeNodes)));
+            characters.push(makeSecurityGuard(subNodes.guard[0], new Set(guardPatrol)));   // 警衛：巡邏警衛室與主島之間的橋梁
         }
 
         // --- Lighting ---
@@ -2027,7 +2615,33 @@
         }
 
         // --- Interaction Handlers ---
+        // --- 浮動按鈕：平移 / 旋轉 (擇一，以滑鼠右鍵操作) 與 放大 / 縮小 ---
+        function setNavMode(mode) {
+            if (!controls) return;
+            controls.mouseButtons = { LEFT: -1, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: mode === 'pan' ? THREE.MOUSE.PAN : THREE.MOUSE.ROTATE };
+            if (THREE.TOUCH) controls.touches = { ONE: mode === 'pan' ? THREE.TOUCH.PAN : THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_PAN };
+            const on = 'bg-blue-600 text-white shadow-md', off = 'text-slate-600 hover:bg-white/60';
+            [['rotate', 'nav-rotate'], ['pan', 'nav-pan']].forEach(([m, id]) => {
+                const el = document.getElementById(id); if (!el) return;
+                el.className = 'nav-btn px-3 py-2 rounded-xl text-xs md:text-sm font-black transition-all flex items-center gap-1 ' + (m === mode ? on : off);
+            });
+        }
+        function zoomCamera(f) {
+            const v = camera.position.clone().sub(controls.target);
+            v.setLength(Math.min(controls.maxDistance, Math.max(controls.minDistance, v.length() * f)));
+            camera.position.copy(controls.target).add(v);
+            controls.update();
+        }
+        let zoomTimer = null;
+        function stopZoom() { if (zoomTimer) { clearInterval(zoomTimer); zoomTimer = null; } }
+        function startZoom(dir) {
+            stopZoom();
+            zoomCamera(dir > 0 ? 0.92 : 1.08);
+            zoomTimer = setInterval(() => zoomCamera(dir > 0 ? 0.975 : 1.025), 40);
+        }
+
         function onPointerDown(event) {
+            if (event.button !== undefined && event.button !== 0) return;   // 僅左鍵點擊開啟介紹
             if (event.target !== renderer.domElement) return;
 
             mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
@@ -2189,6 +2803,12 @@
             controls.minDistance = 15;
             controls.maxDistance = 200;
             controls.target.set(0, 0, 0);
+            setNavMode('rotate');
+            [['zoom-in', 1], ['zoom-out', -1]].forEach(([id, d]) => {
+                const b = document.getElementById(id);
+                b.addEventListener('pointerdown', e => { e.preventDefault(); startZoom(d); });
+                ['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => b.addEventListener(ev, stopZoom));
+            });
 
             raycaster = new THREE.Raycaster();
             mouse = new THREE.Vector2();
