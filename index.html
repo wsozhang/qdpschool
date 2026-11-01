@@ -124,6 +124,20 @@
         <div class="hidden lg:block w-40 shrink-0"></div>
     </header>
 
+    <!-- Floating Window: 學務處衛生組宣導 (reads pm.txt) -->
+    <div id="pm-window" class="absolute left-4 top-24 z-30 w-64 md:w-72 pointer-events-none">
+        <div class="glass-panel rounded-2xl shadow-lg border border-white/70 pointer-events-auto overflow-hidden">
+            <div id="pm-handle" class="flex items-center justify-between px-3 py-2 bg-gradient-to-r from-orange-500 to-amber-500 text-white cursor-move">
+                <span id="pm-title" class="text-xs md:text-sm font-black tracking-wide">📢 宣導事項</span>
+                <button id="pm-toggle" type="button" class="w-6 h-6 rounded-lg hover:bg-white/25 font-black leading-none" title="收合／展開">－</button>
+            </div>
+            <ul id="pm-list" class="px-3 py-2 space-y-1.5 max-h-64 overflow-y-auto text-[11px] md:text-xs font-bold text-slate-700 leading-relaxed">
+                <li class="text-slate-400">讀取中…</li>
+            </ul>
+        </div>
+    </div>
+
+
     <!-- Floating Navigation Controls (top-right) -->
     <div id="nav-panel" class="absolute right-4 top-24 z-30 flex flex-col items-end gap-2 pointer-events-none">
         <div class="glass-panel rounded-2xl p-1.5 flex items-center gap-1 shadow-lg border border-white/70 pointer-events-auto">
@@ -3205,6 +3219,78 @@
         }
 
         window.onload = init;
+    </script>
+
+    <script>
+    // 讀取同目錄 pm.txt 並顯示於懸浮視窗
+    (function () {
+        const FALLBACK = `【學務處衛生組宣導：】
+早晚勤刷牙，牙齒健康笑開懷！
+用眼30休息10，戶外120，護眼真輕鬆！
+不碰電子菸，健康每一天！
+勤洗手、重衛生，健康又安心！
+巡倒清刷勤做好，登革熱遠離我！
+保持樂觀好心情，勇敢自信向前行！
+關注AQI，空污遠離我，健康好呼吸！`;
+
+        function render(text) {
+            const lines = text.replace(/\r/g, '').split('\n').map(l => l.trim()).filter(Boolean);
+            const list = document.getElementById('pm-list');
+            const title = document.getElementById('pm-title');
+            list.innerHTML = '';
+            lines.forEach((line, i) => {
+                const m = line.match(/^[【\[](.+?)[】\]]$/);
+                if (i === 0 && m) { title.textContent = '📢 ' + m[1].replace(/[：:]\s*$/, ''); return; }
+                const li = document.createElement('li');
+                li.className = 'flex gap-1.5';
+                const dot = document.createElement('span');
+                dot.textContent = '•'; dot.className = 'text-orange-500';
+                const t = document.createElement('span');
+                t.textContent = line;   // textContent 避免 HTML 注入
+                li.append(dot, t);
+                list.appendChild(li);
+            });
+        }
+
+        async function loadPM() {
+            try {
+                const res = await fetch('pm.txt?t=' + Date.now(), { cache: 'no-store' });
+                if (!res.ok) throw new Error(res.status);
+                render(await res.text());
+            } catch (e) {
+                console.warn('pm.txt 讀取失敗，改用內建內容（直接雙擊開啟 file:// 時瀏覽器會擋 fetch）', e);
+                render(FALLBACK);
+            }
+        }
+
+        function setup() {
+            loadPM();
+            const win = document.getElementById('pm-window');
+            const list = document.getElementById('pm-list');
+            const btn = document.getElementById('pm-toggle');
+            btn.addEventListener('click', () => {
+                const hidden = list.classList.toggle('hidden');
+                btn.textContent = hidden ? '＋' : '－';
+            });
+            // 拖曳移動
+            const handle = document.getElementById('pm-handle');
+            let sx, sy, ox, oy, drag = false;
+            handle.addEventListener('pointerdown', e => {
+                if (e.target === btn) return;
+                drag = true; sx = e.clientX; sy = e.clientY;
+                const r = win.getBoundingClientRect(); ox = r.left; oy = r.top;
+                handle.setPointerCapture(e.pointerId);
+            });
+            handle.addEventListener('pointermove', e => {
+                if (!drag) return;
+                const x = Math.max(0, Math.min(window.innerWidth - 80, ox + e.clientX - sx));
+                const y = Math.max(0, Math.min(window.innerHeight - 40, oy + e.clientY - sy));
+                win.style.left = x + 'px'; win.style.top = y + 'px';
+            });
+            ['pointerup', 'pointercancel'].forEach(ev => handle.addEventListener(ev, () => { drag = false; }));
+        }
+        if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', setup); else setup();
+    })();
     </script>
 </body>
 </html>
