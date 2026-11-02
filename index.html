@@ -1344,29 +1344,33 @@
             }
             return [sharedPanelMat, sharedPanelFrame];
         }
-        function addSolarShedRoof(group, width, depth, baseY) {
-            const D = depth + 0.4, W = width + 0.3, rise = 1.15, low = 0.08;
+        function addSolarShedRoof(group, width, depth, baseY) {   // 太陽能光電雙向斜屋頂 (前後雙向，中間屋脊)
+            const D = depth + 0.4, W = width + 0.3, rise = Math.max(0.65, D * 0.24), low = 0.08;
             const shape = new THREE.Shape();
-            shape.moveTo(-D / 2, 0); shape.lineTo(D / 2, 0); shape.lineTo(D / 2, low); shape.lineTo(-D / 2, rise); shape.closePath();
+            shape.moveTo(-D / 2, 0); shape.lineTo(D / 2, 0); shape.lineTo(D / 2, low); shape.lineTo(0, rise); shape.lineTo(-D / 2, low); shape.closePath();
             const geo = new THREE.ExtrudeGeometry(shape, { depth: W, bevelEnabled: false });
             geo.translate(0, 0, -W / 2);
-            const body = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color: 0xCFD8DC, roughness: 0.6 }));
-            body.rotation.y = -Math.PI / 2; body.position.set(0, baseY, 0); body.castShadow = true; body.receiveShadow = true;
-            group.add(body);
+            const rg = new THREE.Group(); rg.rotation.y = -Math.PI / 2; rg.position.set(0, baseY, 0); group.add(rg);
+            const bodyMat = new THREE.MeshStandardMaterial({ color: 0xCFD8DC, roughness: 0.6 });
+            const body = new THREE.Mesh(geo, bodyMat); body.castShadow = true; body.receiveShadow = true; rg.add(body);
             const [pm, pf] = getPanelMats();
-            const ang = Math.atan2(rise - low, D), slopeLen = Math.hypot(D, rise - low);
-            const pg = new THREE.Group();
-            pg.position.set(0, baseY + (rise + low) / 2 + 0.05, 0); pg.rotation.x = ang;
+            const ang = Math.atan2(rise - low, D / 2), slopeLen = Math.hypot(D / 2, rise - low);
             const aw = W - 0.4, al = slopeLen - 0.2;
             const nx = Math.max(2, Math.floor(aw / 1.3)), ny = Math.max(2, Math.floor(al / 1.1));
             const cw = aw / nx, cl = al / ny;
-            const frG = new THREE.BoxGeometry(cw - 0.04, 0.05, cl - 0.04), pnG = new THREE.BoxGeometry(cw - 0.1, 0.06, cl - 0.1);
-            for (let i = 0; i < nx; i++) for (let j = 0; j < ny; j++) {
-                const px = -aw / 2 + (i + 0.5) * cw, pz = -al / 2 + (j + 0.5) * cl;
-                const fr = new THREE.Mesh(frG, pf); fr.position.set(px, 0, pz); pg.add(fr);
-                const p = new THREE.Mesh(pnG, pm); p.position.set(px, 0.03, pz); p.castShadow = true; pg.add(p);
-            }
-            group.add(pg);
+            const frG = new THREE.BoxGeometry(cl - 0.04, 0.05, cw - 0.04), pnG = new THREE.BoxGeometry(cl - 0.1, 0.06, cw - 0.1);
+            [-1, 1].forEach(sd => {
+                const pg = new THREE.Group();
+                pg.position.set(sd * D / 4, (rise + low) / 2, 0); pg.rotation.z = -sd * ang;
+                for (let a = 0; a < nx; a++) for (let b = 0; b < ny; b++) {
+                    const pz = -aw / 2 + (a + 0.5) * cw, px = -al / 2 + (b + 0.5) * cl;
+                    const fr = new THREE.Mesh(frG, pf); fr.position.set(px, 0.05, pz); pg.add(fr);
+                    const p = new THREE.Mesh(pnG, pm); p.position.set(px, 0.08, pz); p.castShadow = true; pg.add(p);
+                }
+                rg.add(pg);
+            });
+            const ridge = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.1, W + 0.04), bodyMat);
+            ridge.position.set(0, rise + 0.02, 0); ridge.castShadow = true; rg.add(ridge);
         }
 
 
@@ -1617,20 +1621,24 @@
         }
 
         // --- 太陽能光電平台屋頂 (球場用，微傾斜 + 支柱) ---
-        function addSolarCanopy(g, cx, cz, w, d, topY, tilt) {
+        function addSolarCanopy(g, cx, cz, w, d, topY, tilt) {   // 雙向斜屋頂棚架：中間屋脊最高，前後兩側向下傾斜
             const steel = new THREE.MeshStandardMaterial({ color: 0x78909C, roughness: 0.45, metalness: 0.5 });
             const [pm, pf] = getPanelMats();
-            const roof = new THREE.Group(); roof.position.set(cx, topY, cz); roof.rotation.x = tilt; g.add(roof);
-            const frame = new THREE.Mesh(new THREE.BoxGeometry(w + 0.4, 0.14, d + 0.4), steel); frame.castShadow = true; frame.receiveShadow = true; roof.add(frame);
-            const nx = Math.floor(w / 1.2), ny = Math.floor(d / 1.3), cw = w / nx, cl = d / ny;
-            for (let i = 0; i < nx; i++) for (let j = 0; j < ny; j++) {
-                const px = -w / 2 + (i + 0.5) * cw, pz = -d / 2 + (j + 0.5) * cl;
-                const fr = new THREE.Mesh(new THREE.BoxGeometry(cw - 0.04, 0.05, cl - 0.04), pf); fr.position.set(px, 0.1, pz); roof.add(fr);
-                const p = new THREE.Mesh(new THREE.BoxGeometry(cw - 0.1, 0.06, cl - 0.1), pm); p.position.set(px, 0.12, pz); p.castShadow = true; roof.add(p);
-            }
+            const t = Math.max(tilt, 0.16), l = d / (2 * Math.cos(t));
+            [-1, 1].forEach(sd => {
+                const roof = new THREE.Group(); roof.position.set(cx, topY, cz); roof.rotation.x = sd * t; g.add(roof);
+                const frame = new THREE.Mesh(new THREE.BoxGeometry(w + 0.4, 0.14, l + 0.2), steel); frame.position.z = sd * l / 2; frame.castShadow = true; frame.receiveShadow = true; roof.add(frame);
+                const nx = Math.floor(w / 1.2), ny = Math.max(2, Math.floor(l / 1.3)), cw = w / nx, cl = l / ny;
+                for (let i = 0; i < nx; i++) for (let j = 0; j < ny; j++) {
+                    const px = -w / 2 + (i + 0.5) * cw, pz = sd * ((j + 0.5) * cl);
+                    const fr = new THREE.Mesh(new THREE.BoxGeometry(cw - 0.04, 0.05, cl - 0.04), pf); fr.position.set(px, 0.1, pz); roof.add(fr);
+                    const p = new THREE.Mesh(new THREE.BoxGeometry(cw - 0.1, 0.06, cl - 0.1), pm); p.position.set(px, 0.12, pz); p.castShadow = true; roof.add(p);
+                }
+            });
+            const ridge = new THREE.Mesh(new THREE.BoxGeometry(w + 0.4, 0.12, 0.22), steel); ridge.position.set(cx, topY + 0.1, cz); ridge.castShadow = true; g.add(ridge);
             [-1, 0, 1].forEach(ix => [-1, 1].forEach(iz => {
                 const px = cx + ix * (w / 2), pz = iz * (d / 2);
-                const top = topY - pz * Math.sin(tilt) - 0.08, h = top - 0.76;
+                const top = topY - Math.abs(pz) * Math.tan(t) - 0.08, h = top - 0.76;
                 const pil = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.09, h, 12), steel);
                 pil.position.set(px, 0.76 + h / 2, cz + pz); pil.castShadow = true; g.add(pil);
             }));
@@ -1795,7 +1803,8 @@
             const wallMat = new THREE.MeshStandardMaterial({ color: 0xF5F5F5, roughness: 0.55 });
             const bandMat = new THREE.MeshStandardMaterial({ color: 0xE3DAC9, roughness: 0.6 });
             const frameMat = new THREE.MeshStandardMaterial({ color: 0xFFFFFF, roughness: 0.5 });
-            const roofMat = new THREE.MeshStandardMaterial({ color: 0xA5402D, roughness: 0.55 });
+            const roofMat = new THREE.MeshStandardMaterial({ color: 0xDDE3E8, roughness: 0.5, metalness: 0.1 });   // 屋頂底材/框架：銀灰
+            const solarMat = new THREE.MeshStandardMaterial({ color: 0xD3D9DF, roughness: 0.22, metalness: 0.5, emissive: 0xC8D0D8, emissiveIntensity: 0.18 });   // 太陽能光電板：銀白色
             const glass = getGlassMat();
             const add = (m, x, y, z) => { m.position.set(x, y, z); m.castShadow = true; m.receiveShadow = true; group.add(m); return m; };
             const wallH = 3.6, rise = 2.3;
@@ -1824,7 +1833,24 @@
             const roof = new THREE.Mesh(geo, roofMat);
             roof.rotation.y = -Math.PI / 2; roof.position.set(0, wallH + 0.16, 0);
             roof.castShadow = true; roof.receiveShadow = true; group.add(roof);
-            add(new THREE.Mesh(new THREE.BoxGeometry(RW + 0.1, 0.12, 0.3), bandMat), 0, wallH + 0.16 + rise, 0);   // 屋脊
+            // 雙向斜屋頂：兩個斜面鋪設銀白色太陽能光電板
+            const rg = new THREE.Group(); rg.rotation.y = -Math.PI / 2; rg.position.set(0, wallH + 0.16, 0); group.add(rg);
+            const sAng = Math.atan2(rise, RD / 2), sLen = Math.hypot(RD / 2, rise);
+            const aw = RW - 0.5, al = sLen - 0.4;
+            const nx = Math.max(3, Math.floor(aw / 1.3)), ny = Math.max(2, Math.floor(al / 1.1));
+            const cw = aw / nx, cl = al / ny;
+            const pnG = new THREE.BoxGeometry(cl - 0.08, 0.05, cw - 0.08);
+            [-1, 1].forEach(sd => {
+                const pg = new THREE.Group();
+                pg.position.set(sd * RD / 4, rise / 2, 0); pg.rotation.z = -sd * sAng;
+                for (let i = 0; i < nx; i++) for (let j = 0; j < ny; j++) {
+                    const p = new THREE.Mesh(pnG, solarMat);
+                    p.position.set(-al / 2 + (j + 0.5) * cl, 0.06, -aw / 2 + (i + 0.5) * cw);
+                    p.castShadow = true; p.receiveShadow = true; pg.add(p);
+                }
+                rg.add(pg);
+            });
+            add(new THREE.Mesh(new THREE.BoxGeometry(RW + 0.1, 0.12, 0.3), roofMat), 0, wallH + 0.16 + rise + 0.02, 0);   // 屋脊
             const door = createDoorMesh(2.2, 1.8);
             door.position.set(0, 0.3, D / 2 + 0.01); group.add(door);
             const step = new THREE.Mesh(new THREE.BoxGeometry(3.2, 0.2, 0.8), bandMat);
@@ -2114,23 +2140,27 @@
 
         // --- 光電球場：太陽能板斜屋頂 + 籃球框 (橫向配置) ---
         function addSolarCourt(g) {
-            const Y = 0.76, TILT = 0.127;
+            const Y = 0.76, TILT = 0.16;
             const cx2w = cx => (cx / 512 - 0.5) * 17.6, cy2w = cy => (cy / 326 - 0.5) * 11.2;
             const steel = new THREE.MeshStandardMaterial({ color: 0x78909C, roughness: 0.45, metalness: 0.5 });
             const white = new THREE.MeshStandardMaterial({ color: 0xFFFFFF, roughness: 0.4 });
-            const roof = new THREE.Group();
-            roof.position.set(-3.78, 3.25, 0); roof.rotation.x = TILT; g.add(roof);
-            const frame = new THREE.Mesh(new THREE.BoxGeometry(6.1, 0.14, 7.0), steel); frame.castShadow = true; frame.receiveShadow = true; roof.add(frame);
+            const roofH = 3.25, LH = 3.5 / Math.cos(TILT);   // 雙向斜屋頂：中間屋脊，前後各一個斜面
             const panelMat = new THREE.MeshStandardMaterial({ color: 0x14306B, roughness: 0.2, metalness: 0.7, emissive: 0x0A1A40, emissiveIntensity: 0.3 });
             const panelFrame = new THREE.MeshStandardMaterial({ color: 0xCFD8DC, metalness: 0.6, roughness: 0.4 });
-            for (let i = 0; i < 4; i++) for (let j = 0; j < 4; j++) {
-                const px = -2.175 + i * 1.45, pz = -2.55 + j * 1.7;
-                const fr = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.05, 1.64), panelFrame); fr.position.set(px, 0.1, pz); roof.add(fr);
-                const p = new THREE.Mesh(new THREE.BoxGeometry(1.3, 0.06, 1.54), panelMat); p.position.set(px, 0.12, pz); p.castShadow = true; roof.add(p);
-                const ln = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.07, 1.54), panelFrame); ln.position.set(px, 0.125, pz); roof.add(ln);
-            }
+            [-1, 1].forEach(sd => {
+                const roof = new THREE.Group();
+                roof.position.set(-3.78, roofH, 0); roof.rotation.x = sd * TILT; g.add(roof);
+                const frame = new THREE.Mesh(new THREE.BoxGeometry(6.1, 0.14, LH + 0.2), steel); frame.position.z = sd * LH / 2; frame.castShadow = true; frame.receiveShadow = true; roof.add(frame);
+                for (let i = 0; i < 4; i++) for (let j = 0; j < 2; j++) {
+                    const px = -2.175 + i * 1.45, pz = sd * (0.88 + j * 1.72);
+                    const fr = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.05, 1.64), panelFrame); fr.position.set(px, 0.1, pz); roof.add(fr);
+                    const p = new THREE.Mesh(new THREE.BoxGeometry(1.3, 0.06, 1.54), panelMat); p.position.set(px, 0.12, pz); p.castShadow = true; roof.add(p);
+                    const ln = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.07, 1.54), panelFrame); ln.position.set(px, 0.125, pz); roof.add(ln);
+                }
+            });
+            const ridgeBar = new THREE.Mesh(new THREE.BoxGeometry(6.1, 0.12, 0.22), steel); ridgeBar.position.set(-3.78, roofH + 0.1, 0); ridgeBar.castShadow = true; g.add(ridgeBar);
             [-6.7, -3.78, -0.86].forEach(px => [-3.35, 3.35].forEach(pz => {
-                const top = 3.25 - pz * Math.sin(TILT) - 0.08, h = top - Y;
+                const top = roofH - Math.abs(pz) * Math.tan(TILT) - 0.08, h = top - Y;
                 const pil = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.09, h, 12), steel);
                 pil.position.set(px, Y + h / 2, pz); pil.castShadow = true; g.add(pil);
             }));
