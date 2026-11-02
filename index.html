@@ -2576,7 +2576,7 @@
                 const kg = new THREE.Group(); kg.position.set(0, 0.75, 0); kg.rotation.y = angleToMain;   // 局部 +z 朝向橋梁
                 const kb = createKindergartenBuilding(); kb.rotation.y = Math.PI; kb.position.z = -4.0; kg.add(kb);   // 建築物往島嶼後方移動，前方腹地更寬廣
                 addCoveredWalkway(kg, 0, 0.0, r * 0.85, 2.4);
-                [-1, 1].forEach(sx => addRailing(kg, sx * 1.1, 0.0, sx * 1.1, r * 0.85, 0.06));   // 走道兩側欄杆 (無圍牆)
+                // 走道兩側原有的綠色水平欄杆已取消，只保留 addCoveredWalkway 內支撐屋頂的白色立柱，讓左右兩側可互通
                 const pa = createPlayArea(); pa.scale.setScalar(0.75); pa.rotation.y = -Math.PI / 2; pa.position.set(5.0, 0, 5.8);   // 遊樂器材區：位置/大小/方向維持不變
                 kg.add(pa);
 
